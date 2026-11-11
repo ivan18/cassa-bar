@@ -9,7 +9,7 @@ Ultimo aggiornamento: **2026-11-11**
 | | |
 |---|---|
 | Pubblicato su Pages | **v4** — crediti, incasso per quantità, configurazione, ecc. ([PR #2](https://github.com/ivan18/cassa-bar/pull/2), tag `v4`) |
-| In revisione | **v4.1** — correzioni responsive (intestazione in finestra, barra schede sempre visibile), branch `fix/responsive` |
+| In revisione | **v4.1** — correzioni responsive (intestazione in finestra, barra schede sempre visibile), [PR #3](https://github.com/ivan18/cassa-bar/pull/3) |
 | Versione precedente | **v3** (PIN con hash, [PR #1](https://github.com/ivan18/cassa-bar/pull/1), tag `v3`) |
 | PIN della build | `1234` (il PIN vero si imposterà con il JSON di configurazione) |
 
