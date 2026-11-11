@@ -2,7 +2,7 @@
 
 Ogni versione pubblicata corrisponde a un tag git (`v3`, `v4`…). Le versioni precedenti a v3 sono descritte qui ma non hanno un tag.
 
-## v3 — 2026-11-11 — in revisione (PR da `chore/v3-pin-hash-manutenzione`)
+## v3 — 2026-11-11 — in revisione ([PR #1](https://github.com/ivan18/cassa-bar/pull/1))
 App (rispetto a v2):
 - PIN dell'area protetta verificato con hash SHA-256 (salt casuale + PIN) generato in build: `CASSA_PIN=xxxx npm run build`.
 - Rimosse le password `admin`/`pub` (non digitabili dal tastierino) e i suggerimenti "es. 1234" / "Password predefinita: 1234".
