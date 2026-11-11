@@ -54,7 +54,7 @@ Esce con codice 1 se qualcosa fallisce. Per controllare anche il file pubblicato
 2. Aggiornare `docs/CHANGELOG.md`, `docs/STATO.md` e, se cambiano funzioni, `docs/FUNZIONALITA.md`.
 3. Commit di sorgente **e** file generati, push del branch, pull request su `main`.
 4. Merge: GitHub Pages (branch `main`, cartella root) pubblica in circa un minuto.
-5. Tag della versione: `git switch main && git pull && git tag vN && git push origin vN`.
+5. Tag della versione: `git switch main && git pull && git tag vN && git push origin vN`, oppure da GitHub → Releases → Draft a new release (tag nuovo `vN` su `main`). Dalle sessioni Claude il push dei tag è bloccato: si usa la pagina Releases nel browser.
 
 Il service worker cambia nome di cache a ogni build: i dispositivi scaricano la nuova versione alla prima apertura con la rete.
 

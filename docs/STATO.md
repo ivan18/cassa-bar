@@ -19,7 +19,7 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 ### Subito
 - ☑ Merge della PR #1 (v3) su `main`.
 - ☐ Verificare dal telefono del bar che il PIN funzioni e che non compaia più "1234".
-- ☐ Creare il tag `v3` su `23eb5c2` (da GitHub → Releases, o `git tag v3 23eb5c2 && git push origin v3`): dalle sessioni Claude il push dei tag è bloccato.
+- ☑ Tag `v3` su `23eb5c2` (creato come release da GitHub via browser: dalle sessioni Claude il push dei tag è bloccato).
 - ☐ Provare la v4 ([PR #2](https://github.com/ivan18/cassa-bar/pull/2)) e decidere se fare il merge prima o dopo D3/D4.
 
 ### v4 (vedi il piano completo)
@@ -56,7 +56,7 @@ Formato del file: vedi [config.esempio.json](config.esempio.json) e il [piano v4
 
 Una riga per sessione, la più recente in alto: cosa è stato fatto e cosa è rimasto a metà.
 
-- **2026-11-11 (notte)** — Merge PR #1: v3 pubblicata (tag `v3` da creare a mano). Implementata la v4 sul branch `feat/v4-crediti`: crediti, incasso per quantità, conti ordinati, fondo manuale, configurazione JSON (soci + PIN), filtro A–Z, backup con crediti e PIN, fix fondo 0. Test e2e estesi (tutti superati, anche con PIN diverso). Esclusi in attesa di decisione: Tavolo Generico (D4), PIN su Elimina credito (D3).
+- **2026-11-11 (notte)** — Merge PR #1: v3 pubblicata, tag/release `v3` creato via browser. Implementata la v4 sul branch `feat/v4-crediti`: crediti, incasso per quantità, conti ordinati, fondo manuale, configurazione JSON (soci + PIN), filtro A–Z, backup con crediti e PIN, fix fondo 0. Test e2e estesi (tutti superati, anche con PIN diverso). Esclusi in attesa di decisione: Tavolo Generico (D4), PIN su Elimina credito (D3).
 
 - **2026-11-11 (sera)** — Decise D1 e D2: soci e PIN da un JSON di configurazione caricato dall'app (file privato, PIN in chiaro nel file e salvato come hash, soci aggiunti senza duplicati). D3 e D4 restano aperte. Decisa D5: hash + salt del PIN inclusi nel backup. Aggiornati piano v4 e aggiunto `docs/config.esempio.json`.
 
