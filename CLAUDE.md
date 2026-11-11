@@ -18,3 +18,4 @@ Progetto: app di cassa offline (PWA) per il bar di un'associazione. Lingua: **it
 
 ## A fine sessione
 Aggiornare `docs/STATO.md` (situazione, task, una riga nel registro sessioni) e, se serve, `docs/CHANGELOG.md`, `docs/FUNZIONALITA.md`, `docs/PIANO-v4.md`.
+Poi riallineare le copie nel Progetto Claude: `claude/funzionalita.md`, `claude/CHANGELOG.md`, `claude/PIANO.md` (= PIANO-v4), `claude/LEGGIMI.md` (= MANUTENZIONE), `claude/STATO.md`.

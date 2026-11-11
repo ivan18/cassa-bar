@@ -1,6 +1,6 @@
 # Cassa Smart Bar & Pub — Funzionalità
 
-Elenco delle funzionalità esposte dall'applicazione (versione **v4**: offline/PWA, PIN con hash, crediti, incasso per quantità, file di configurazione).
+Elenco delle funzionalità esposte dall'applicazione (versione **v4.1**: offline/PWA, PIN con hash, crediti, incasso per quantità, file di configurazione, interfaccia adattata a telefono e tablet).
 Sito: https://ivan18.github.io/cassa-bar/
 
 Da aggiornare a ogni rilascio che cambia il comportamento dell'app.
