@@ -13,6 +13,7 @@ Progetto: app di cassa offline (PWA) per il bar di un'associazione. Lingua: **it
 - Repo pubblico: niente nomi reali dei soci, niente backup JSON.
 - Nessuna richiesta di rete a runtime, nessuna libreria nuova senza motivo, backup vecchi sempre importabili.
 - Pubblicazione solo tramite branch + pull request su `main`.
+- Se un'operazione su GitHub è bloccata dal proxy (tag, release, impostazioni), farla tramite il browser (Claude in Chrome, sessione già loggata dell'utente).
 - Con le modifiche di codice indicare sempre i comandi per lanciare i test.
 
 ## A fine sessione

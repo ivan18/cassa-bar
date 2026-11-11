@@ -2,7 +2,22 @@
 
 Ogni versione pubblicata corrisponde a un tag git (`v3`, `v4`…). Le versioni precedenti a v3 sono descritte qui ma non hanno un tag.
 
-## v3 — 2026-11-11 — in revisione ([PR #1](https://github.com/ivan18/cassa-bar/pull/1))
+## v4 — 2026-11-11 — pubblicata ([PR #2](https://github.com/ivan18/cassa-bar/pull/2), tag `v4`)
+App (rispetto a v3):
+- Scheda **CREDITI**: alla chiusura cassa i conti aperti diventano crediti (con data), i tavoli si liberano; totale dei sospesi, badge, incasso anche parziale, Elimina con conferma.
+- **Incasso per quantità**: tutto preselezionato all'apertura, preselezioni Intero tavolo / Quota socio, Azzera selezione, +/− per voce; nello storico "Intero Tavolo", nome del socio, "Nome (parziale)", "Parziale" o "Credito del gg/mm"; un socio esce dal tavolo quando non ha più voci da pagare; tasto CONFERMA con l'importo, disattivato se non c'è nulla da incassare.
+- **Conti aperti ordinati per tavolo** (Banco, poi 1–6).
+- **Fondo cassa manuale** con Imposta e Azzera (con conferma).
+- **Carica configurazione**: file JSON con soci (aggiunti senza doppioni) e PIN (salvato come hash nel dispositivo); file non validi rifiutati senza modifiche.
+- **Filtro alfabetico A–Z** nella scelta dei soci al tavolo (sostituisce la ricerca testuale).
+- **Backup**: include crediti e hash + salt del PIN; i backup vecchi restano importabili; corretto l'import che ignorava un fondo cassa pari a 0; un file di configurazione importato come backup viene rifiutato.
+- La chiusura cassa chiede conferma se ci sono conti aperti.
+
+Non incluso (decisioni aperte): "Tavolo Generico" (D4), PIN su Elimina credito (D3).
+
+Progetto: test end-to-end estesi a tutte le funzioni nuove (incasso parziale, crediti, configurazione, backup, responsive a 375/768/1024 px).
+
+## v3 — 2026-11-11 — pubblicata ([PR #1](https://github.com/ivan18/cassa-bar/pull/1), merge `23eb5c2`)
 App (rispetto a v2):
 - PIN dell'area protetta verificato con hash SHA-256 (salt casuale + PIN) generato in build: `CASSA_PIN=xxxx npm run build`.
 - Rimosse le password `admin`/`pub` (non digitabili dal tastierino) e i suggerimenti "es. 1234" / "Password predefinita: 1234".

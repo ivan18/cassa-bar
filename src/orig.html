@@ -59,6 +59,22 @@
         const INITIAL_CUSTOMERS = ['Andrea', 'Chiara', 'Giuseppe', 'Luca', 'Marco', 'Matteo', 'Paolo', 'Roberto'];
         // Rimuoviamo Tavolo 7 e Tavolo 8
         const TABLES = ['Banco', 'Tavolo 1', 'Tavolo 2', 'Tavolo 3', 'Tavolo 4', 'Tavolo 5', 'Tavolo 6'];
+        // Posizione del tavolo nell'elenco (Banco, poi 1-6): serve a ordinare i conti aperti
+        const tableWeight = (table) => { const i = TABLES.indexOf(table); return i === -1 ? TABLES.length : i; };
+
+        // File di configurazione (soci + PIN), caricato dall'app e mai pubblicato
+        const CONFIG_TIPO = 'cassa-bar-config';
+        const CONFIG_VERSIONE = 1;
+        const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+        function randomHex(bytes) {
+            return Array.from(crypto.getRandomValues(new Uint8Array(bytes)), b => b.toString(16).padStart(2, '0')).join('');
+        }
+        // Iniziale senza accenti, per il filtro A-Z
+        const initialOf = (name) => name.trim().normalize('NFD').replace(/[̀-ͯ]/g, '').charAt(0).toUpperCase();
+        const shortDate = (d) => d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
+        const sumItems = (items) => items.reduce((s, i) => s + i.price * i.qty, 0);
+        const customerOf = (item) => item.assignedCustomer || 'Socio';
 
         function Icon({ name, className = "w-5 h-5" }) {
             useEffect(() => {
@@ -162,7 +178,32 @@
 
             // Modale Gestione Soci al Tavolo
             const [isManageTableMembersOpen, setIsManageTableMembersOpen] = useState(false);
-            const [tableMemberSearch, setTableMemberSearch] = useState('');
+            const [alphabetFilter, setAlphabetFilter] = useState('TUTTI');
+
+            // Crediti: conti rimasti aperti alla chiusura cassa
+            const [creditTabs, setCreditTabs] = useState(() => {
+                const saved = localStorage.getItem('cassa_creditTabs');
+                return saved ? JSON.parse(saved) : [];
+            });
+            useEffect(() => { localStorage.setItem('cassa_creditTabs', JSON.stringify(creditTabs)); }, [creditTabs]);
+
+            // PIN del dispositivo (da file di configurazione o backup): se assente vale quello della build
+            const [devicePin, setDevicePin] = useState(() => {
+                const salt = localStorage.getItem('cassa_pinSalt');
+                const hash = localStorage.getItem('cassa_pinHash');
+                return salt && hash ? { salt, hash } : null;
+            });
+            useEffect(() => {
+                if (devicePin) {
+                    localStorage.setItem('cassa_pinSalt', devicePin.salt);
+                    localStorage.setItem('cassa_pinHash', devicePin.hash);
+                } else {
+                    localStorage.removeItem('cassa_pinSalt');
+                    localStorage.removeItem('cassa_pinHash');
+                }
+            }, [devicePin]);
+
+            const [fundDraft, setFundDraft] = useState('');
 
             const [newMemberName, setNewMemberName] = useState('');
 
@@ -176,13 +217,10 @@
                 reasonNotes: 'Consegna Incasso Giornaliero'
             });
 
-            const [checkoutModal, setCheckoutModal] = useState({
-                open: false,
-                order: null,
-                amountTendered: '',
-                change: 0,
-                selectedCustomerToPay: 'ALL'
-            });
+            // Incasso per quantità: selections = { indiceVoce: quantità da pagare }
+            // source: 'cart' (comanda corrente), 'tab' (conto aperto), 'credit' (credito)
+            const CLOSED_CHECKOUT = { open: false, order: null, source: '', creditId: null, amountTendered: '', preset: 'ALL', selections: {} };
+            const [checkoutModal, setCheckoutModal] = useState(CLOSED_CHECKOUT);
 
             // Calcoli Derivati
             const sortedCustomerList = useMemo(() => {
@@ -219,7 +257,8 @@
                     setAuthModal(prev => ({ ...prev, error: 'Verifica PIN non supportata da questo browser.' }));
                     return;
                 }
-                if (pass && await sha256Hex(PIN_SALT + pass) === PIN_HASH) {
+                const pin = devicePin || { salt: PIN_SALT, hash: PIN_HASH };
+                if (pass && await sha256Hex(pin.salt + pass) === pin.hash) {
                     setActiveTab(authModal.targetTab);
                     setAuthModal({ open: false, targetTab: '', requiredRole: '', passwordInput: '', error: '' });
                 } else {
@@ -364,97 +403,108 @@
                 alert(`Conto per ${selectedTable} salvato con successo!`);
             };
 
+            // Apre l'incasso con tutte le quantità già selezionate
+            const openCheckout = (order, source, creditId = null) => {
+                const selections = {};
+                order.items.forEach((item, idx) => { selections[idx] = item.qty; });
+                setCheckoutModal({ open: true, order, source, creditId, amountTendered: '', preset: 'ALL', selections });
+            };
+
             const openCheckoutCurrentCart = () => {
                 if (cart.length === 0) return;
-                setCheckoutModal({
-                    open: true,
-                    order: {
-                        id: Date.now(),
-                        table: selectedTable,
-                        items: cart,
-                        total: cartTotal
-                    },
-                    amountTendered: '',
-                    change: 0,
-                    selectedCustomerToPay: 'ALL'
+                openCheckout({ id: Date.now(), table: selectedTable, items: cart, total: cartTotal }, 'cart');
+            };
+
+            // Preselezioni: 'ALL' = intero tavolo, nome socio = sua quota, 'NONE' = azzera
+            const applyCheckoutPreset = (preset) => {
+                setCheckoutModal(prev => {
+                    const selections = {};
+                    prev.order.items.forEach((item, idx) => {
+                        selections[idx] = preset === 'ALL' || (preset !== 'NONE' && customerOf(item) === preset) ? item.qty : 0;
+                    });
+                    return { ...prev, preset: preset === 'NONE' ? 'CUSTOM' : preset, selections, amountTendered: '' };
                 });
             };
 
+            const changeCheckoutQty = (idx, delta) => {
+                setCheckoutModal(prev => {
+                    const max = prev.order.items[idx].qty;
+                    const q = Math.min(max, Math.max(0, (prev.selections[idx] || 0) + delta));
+                    return { ...prev, preset: 'CUSTOM', selections: { ...prev.selections, [idx]: q }, amountTendered: '' };
+                });
+            };
+
+            const checkoutSplit = (modal) => {
+                const paid = [], remaining = [];
+                modal.order.items.forEach((item, idx) => {
+                    const q = modal.selections[idx] || 0;
+                    if (q > 0) paid.push({ ...item, qty: q });
+                    if (item.qty > q) remaining.push({ ...item, qty: item.qty - q });
+                });
+                return { paid, remaining };
+            };
+
+            // Nome da registrare nello storico
+            const paymentLabel = (modal, paid, remaining) => {
+                if (modal.source === 'credit') return `Credito del ${modal.order.closureDate}`;
+                if (remaining.length === 0) return 'Intero Tavolo';
+                const payers = [...new Set(paid.map(customerOf))];
+                if (payers.length > 1) return 'Parziale';
+                const payer = payers[0];
+                return remaining.some(i => customerOf(i) === payer) ? `${payer} (parziale)` : payer;
+            };
+
             const confirmPayment = () => {
-                if (!checkoutModal.order) return;
-                const targetCustomer = checkoutModal.selectedCustomerToPay;
+                const modal = checkoutModal;
+                if (!modal.order) return;
+                const { paid, remaining } = checkoutSplit(modal);
+                if (paid.length === 0) return;
+                const order = modal.order;
 
-                if (targetCustomer === 'ALL') {
-                    // Incasso totale tavolo
-                    const saleRecord = {
-                        id: Date.now(),
-                        time: currentDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        table: checkoutModal.order.table,
-                        customerName: 'Intero Tavolo',
-                        items: checkoutModal.order.items,
-                        total: checkoutModal.order.total
-                    };
-                    setSalesHistory(prev => [saleRecord, ...prev]);
-                    setOpenTabs(prev => prev.filter(t => t.table !== checkoutModal.order.table));
-                    if (selectedTable === checkoutModal.order.table) {
-                        setCart([]);
-                        setTableMembersMap(prev => ({ ...prev, [selectedTable]: [] }));
-                        setActiveCustomer('');
-                        setSelectedTable('Banco');
-                    }
-                } else {
-                    // Incasso singolo socio
-                    const memberItems = checkoutModal.order.items.filter(i => (i.assignedCustomer || 'Socio') === targetCustomer);
-                    const memberTotal = memberItems.reduce((sum, i) => sum + i.price * i.qty, 0);
+                const saleRecord = {
+                    id: Date.now(),
+                    time: currentDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    table: order.table,
+                    customerName: paymentLabel(modal, paid, remaining),
+                    items: paid,
+                    total: sumItems(paid)
+                };
+                setSalesHistory(prev => [saleRecord, ...prev]);
 
-                    if (memberItems.length === 0) return;
-
-                    const saleRecord = {
-                        id: Date.now(),
-                        time: currentDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        table: checkoutModal.order.table,
-                        customerName: targetCustomer,
-                        items: memberItems,
-                        total: memberTotal
-                    };
-                    setSalesHistory(prev => [saleRecord, ...prev]);
-
-                    // Identifica gli articoli rimanenti degli ALTRI soci al tavolo
-                    const remainingItems = checkoutModal.order.items.filter(i => (i.assignedCustomer || 'Socio') !== targetCustomer);
-
-                    // Aggiorna il carrello attivo se stiamo lavorando su questo tavolo
-                    if (selectedTable === checkoutModal.order.table) {
-                        setCart(remainingItems);
-                    }
-
-                    // Rimuovi il socio dalla lista dei soci seduti al tavolo
-                    setTableMembersMap(prev => {
-                        const targetTable = checkoutModal.order.table;
-                        const currentMembers = prev[targetTable] || [];
-                        const updatedMembers = currentMembers.filter(m => m !== targetCustomer);
-
-                        if (activeCustomer === targetCustomer) {
-                            setActiveCustomer(updatedMembers.length > 0 ? updatedMembers[0] : '');
-                        }
-
-                        return {
-                            ...prev,
-                            [targetTable]: updatedMembers
-                        };
-                    });
-
-                    // Aggiorna o rimuovi il conto nei Conti Aperti
-                    setOpenTabs(prev => {
-                        if (remainingItems.length === 0) {
-                            return prev.filter(t => t.table !== checkoutModal.order.table);
-                        } else {
-                            const newTotal = remainingItems.reduce((s, i) => s + i.price * i.qty, 0);
-                            return prev.map(t => t.table === checkoutModal.order.table ? { ...t, items: remainingItems, total: newTotal } : t);
-                        }
-                    });
+                if (modal.source === 'credit') {
+                    setCreditTabs(prev => remaining.length === 0
+                        ? prev.filter(c => c.creditId !== modal.creditId)
+                        : prev.map(c => c.creditId === modal.creditId ? { ...c, items: remaining, total: sumItems(remaining) } : c));
+                    setCheckoutModal(CLOSED_CHECKOUT);
+                    return;
                 }
 
-                setCheckoutModal({ open: false, order: null, amountTendered: '', change: 0, selectedCustomerToPay: 'ALL' });
+                const table = order.table;
+                // Un socio esce dal tavolo quando non ha più voci da pagare (solo chi ha appena pagato)
+                const payers = new Set(paid.map(customerOf));
+                const stillOwing = new Set(remaining.map(customerOf));
+                const leaving = [...payers].filter(c => !stillOwing.has(c));
+                const updatedMembers = remaining.length === 0
+                    ? []
+                    : (tableMembersMap[table] || []).filter(m => !leaving.includes(m));
+                setTableMembersMap(prev => ({ ...prev, [table]: updatedMembers }));
+
+                setOpenTabs(prev => remaining.length === 0
+                    ? prev.filter(t => t.table !== table)
+                    : prev.map(t => t.table === table ? { ...t, items: remaining, total: sumItems(remaining) } : t));
+
+                if (selectedTable === table) {
+                    if (remaining.length === 0) {
+                        setCart([]);
+                        setActiveCustomer('');
+                        setSelectedTable('Banco');
+                    } else {
+                        setCart(remaining);
+                        if (!updatedMembers.includes(activeCustomer)) setActiveCustomer(updatedMembers[0] || '');
+                    }
+                }
+
+                setCheckoutModal(CLOSED_CHECKOUT);
             };
 
             // Gestione Prodotti Anagrafica
@@ -501,10 +551,29 @@
             };
 
             const handlePerformDailyClosure = () => {
+                if (openTabs.length > 0 && !confirm(`Ci sono ${openTabs.length} conti aperti: con la chiusura passeranno nei CREDITI e i tavoli verranno liberati. Confermi?`)) return;
+
                 const totalSales = totalDailySales;
                 const presidentVal = parseFloat(closureForm.presidentAmount) || totalSales;
                 const grandTotalInRegister = initialFund + totalSales;
                 const remainingFundForTomorrow = Math.max(0, grandTotalInRegister - presidentVal);
+
+                // I conti rimasti aperti diventano crediti e i tavoli si liberano
+                const movedCount = openTabs.length;
+                if (movedCount > 0) {
+                    const now = Date.now();
+                    const newCredits = openTabs.map((tab, i) => ({
+                        ...tab,
+                        creditId: `${now}_${i}`,
+                        closureDate: shortDate(currentDateTime)
+                    }));
+                    setCreditTabs(prev => [...newCredits, ...prev]);
+                    setOpenTabs([]);
+                }
+                setTableMembersMap({});
+                setCart([]);
+                setActiveCustomer('');
+                setSelectedTable('Banco');
 
                 const newClosure = {
                     id: Date.now(),
@@ -515,7 +584,8 @@
                     totalSales: totalSales,
                     presidentAmount: presidentVal,
                     reasonNotes: closureForm.reasonNotes || 'Consegna Incasso',
-                    newInitialFundForNextDay: remainingFundForTomorrow
+                    newInitialFundForNextDay: remainingFundForTomorrow,
+                    creditsCreated: movedCount
                 };
 
                 setDailyClosuresHistory(prev => [newClosure, ...prev]);
@@ -523,11 +593,32 @@
                 setSalesHistory([]);
                 setClosureForm(prev => ({ ...prev, presidentAmount: '' }));
 
-                alert(`Chiusura Cassa completata!\n\nImporto versato al Presidente: € ${presidentVal.toFixed(2)}\nFondo Cassa per domani aggiornato a: € ${remainingFundForTomorrow.toFixed(2)}`);
+                alert(`Chiusura Cassa completata!\n\nImporto versato al Presidente: € ${presidentVal.toFixed(2)}\nFondo Cassa per domani aggiornato a: € ${remainingFundForTomorrow.toFixed(2)}` +
+                    (movedCount > 0 ? `\n\n${movedCount} ${movedCount === 1 ? 'conto aperto è passato' : 'conti aperti sono passati'} nei CREDITI.` : ''));
             };
 
             const handleDeleteClosure = (id) => {
                 setDailyClosuresHistory(prev => prev.filter(c => c.id !== id));
+            };
+
+            // Elimina credito: per ora solo conferma (protezione con PIN: decisione D3 aperta)
+            const handleDeleteCredit = (credit) => {
+                if (!confirm(`Eliminare il credito di ${credit.table} del ${credit.closureDate} (€ ${credit.total.toFixed(2)})? Il debito verrà cancellato.`)) return;
+                setCreditTabs(prev => prev.filter(c => c.creditId !== credit.creditId));
+            };
+
+            // Fondo cassa impostato a mano
+            const handleSetFund = () => {
+                const v = parseFloat(String(fundDraft).replace(',', '.'));
+                if (isNaN(v) || v < 0) { alert('Importo del fondo cassa non valido.'); return; }
+                setInitialFund(Math.round(v * 100) / 100);
+                setFundDraft('');
+            };
+
+            const handleResetFund = () => {
+                if (!confirm('Azzerare il fondo cassa?')) return;
+                setInitialFund(0);
+                setFundDraft('');
             };
 
             const handleExportBackup = () => {
@@ -535,12 +626,15 @@
                     products,
                     customerList,
                     openTabs,
+                    creditTabs,
                     salesHistory,
                     dailyClosuresHistory,
                     initialFund,
                     clubName,
                     registerName,
-                    tableMembersMap
+                    tableMembersMap,
+                    // Solo hash + salt del PIN, mai il PIN in chiaro
+                    ...(devicePin ? { pinSalt: devicePin.salt, pinHash: devicePin.hash } : {})
                 };
                 const jsonStr = JSON.stringify(data, null, 2);
                 const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -553,24 +647,82 @@
 
             const handleImportBackup = (e) => {
                 const file = e.target.files[0];
+                e.target.value = '';
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     try {
                         const data = JSON.parse(event.target.result);
+                        if (data.tipo === CONFIG_TIPO) {
+                            alert('Questo è un file di configurazione: usa "Carica configurazione".');
+                            return;
+                        }
                         if (data.products) setProducts(data.products);
                         if (data.customerList) setCustomerList(data.customerList);
                         if (data.openTabs) setOpenTabs(data.openTabs);
+                        if (Array.isArray(data.creditTabs)) setCreditTabs(data.creditTabs);
                         if (data.salesHistory) setSalesHistory(data.salesHistory);
                         if (data.dailyClosuresHistory) setDailyClosuresHistory(data.dailyClosuresHistory);
-                        if (data.initialFund) setInitialFund(data.initialFund);
+                        if (typeof data.initialFund === 'number' && !isNaN(data.initialFund)) setInitialFund(data.initialFund);
                         if (data.clubName) setClubName(data.clubName);
                         if (data.registerName) setRegisterName(data.registerName);
                         if (data.tableMembersMap) setTableMembersMap(data.tableMembersMap);
+                        if (typeof data.pinSalt === 'string' && typeof data.pinHash === 'string' && data.pinSalt && data.pinHash) {
+                            setDevicePin({ salt: data.pinSalt, hash: data.pinHash });
+                        }
                         alert('Backup ripristinato con successo!');
                     } catch (err) {
                         alert('Errore nel formato del file di backup!');
                     }
+                };
+                reader.readAsText(file);
+            };
+
+            // File di configurazione: { tipo, versione, soci?: [...], pin?: "cifre" }
+            const handleLoadConfig = (e) => {
+                const file = e.target.files[0];
+                e.target.value = '';
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    let data;
+                    try { data = JSON.parse(event.target.result); } catch (err) {
+                        alert('Configurazione non caricata: il file non è un JSON valido.');
+                        return;
+                    }
+                    const fail = (msg) => alert(`Configurazione non caricata: ${msg}\nNessuna modifica applicata.`);
+                    if (!data || data.tipo !== CONFIG_TIPO) return fail(`il file non è una configurazione della cassa (serve "tipo": "${CONFIG_TIPO}").`);
+                    if (data.versione !== CONFIG_VERSIONE) return fail(`versione ${data.versione} non supportata (serve ${CONFIG_VERSIONE}).`);
+                    const hasSoci = data.soci !== undefined;
+                    const hasPin = data.pin !== undefined;
+                    if (!hasSoci && !hasPin) return fail('il file non contiene né "soci" né "pin".');
+                    if (hasSoci && (!Array.isArray(data.soci) || data.soci.some(s => typeof s !== 'string'))) return fail('"soci" deve essere un elenco di nomi tra virgolette.');
+                    if (hasPin && (typeof data.pin !== 'string' || !/^\d{4,}$/.test(data.pin))) return fail('il PIN deve essere un testo di sole cifre, almeno 4 (es. "482915").');
+                    if (hasPin && (!window.crypto || !crypto.subtle)) return fail('questo browser non supporta la verifica del PIN.');
+
+                    const messages = [];
+                    if (hasSoci) {
+                        // Nomi del file senza vuoti e senza doppioni (maiuscole/minuscole indifferenti)
+                        const fileNames = [];
+                        const seen = new Set();
+                        data.soci.map(s => s.trim()).filter(Boolean).forEach(name => {
+                            const key = name.toLocaleLowerCase('it');
+                            if (!seen.has(key)) { seen.add(key); fileNames.push(name); }
+                        });
+                        const known = new Set(customerList.map(c => c.toLocaleLowerCase('it')));
+                        const added = fileNames.filter(n => !known.has(n.toLocaleLowerCase('it')));
+                        const already = fileNames.length - added.length;
+                        if (added.length > 0) {
+                            setCustomerList(prev => [...prev, ...added].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' })));
+                        }
+                        messages.push(`Soci aggiunti: ${added.length}` + (already > 0 ? ` (${already} già ${already === 1 ? 'presente' : 'presenti'})` : '') + '.');
+                    }
+                    if (hasPin) {
+                        const salt = randomHex(16);
+                        setDevicePin({ salt, hash: await sha256Hex(salt + data.pin) });
+                        messages.push('PIN aggiornato.');
+                    }
+                    alert('Configurazione caricata.\n\n' + messages.join('\n'));
                 };
                 reader.readAsText(file);
             };
@@ -628,6 +780,18 @@
                                     {openTabs.length > 0 && (
                                         <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black animate-pulse">
                                             {openTabs.length}
+                                        </span>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('credits')}
+                                    className={`px-3 py-2 rounded-xl font-black text-xs flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap relative ${activeTab === 'credits' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg scale-105' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
+                                >
+                                    <Icon name="CreditCard" className="w-4 h-4" />
+                                    <span>CREDITI</span>
+                                    {creditTabs.length > 0 && (
+                                        <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black">
+                                            {creditTabs.length}
                                         </span>
                                     )}
                                 </button>
@@ -864,22 +1028,32 @@
                                         <button onClick={() => setIsManageTableMembersOpen(false)} className="text-slate-400 hover:text-white font-black text-lg w-8 h-8 bg-slate-800 rounded-xl flex items-center justify-center">×</button>
                                     </div>
 
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            placeholder="Cerca per iniziale (es. M)..."
-                                            value={tableMemberSearch}
-                                            onChange={e => setTableMemberSearch(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white font-bold placeholder-slate-500 focus:outline-none focus:border-amber-400"
-                                        />
-                                        {tableMemberSearch && (
-                                            <button onClick={() => setTableMemberSearch('')} className="absolute right-3 top-3 text-slate-400 hover:text-white text-xs font-black">Pulisci</button>
-                                        )}
+                                    {/* FILTRO ALFABETICO: una riga scorrevole, lettere senza soci disattivate */}
+                                    <div data-testid="filtro-az" className="bg-slate-950 border border-slate-800 p-2 rounded-2xl overflow-x-auto no-scrollbar flex items-center gap-1 shrink-0">
+                                        <button
+                                            onClick={() => setAlphabetFilter('TUTTI')}
+                                            className={`px-3 h-8 rounded-xl text-[11px] font-black uppercase transition shrink-0 ${alphabetFilter === 'TUTTI' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300' : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'}`}
+                                        >
+                                            TUTTI
+                                        </button>
+                                        {ALPHABET.map(letter => {
+                                            const hasMembers = customerList.some(c => initialOf(c) === letter);
+                                            return (
+                                                <button
+                                                    key={letter}
+                                                    onClick={() => setAlphabetFilter(letter)}
+                                                    disabled={!hasMembers}
+                                                    className={`w-8 h-8 rounded-xl text-xs font-black transition shrink-0 flex items-center justify-center ${alphabetFilter === letter ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300' : hasMembers ? 'bg-slate-900 text-white hover:bg-slate-800 border border-slate-800' : 'bg-slate-950 text-slate-700 border border-slate-900 cursor-not-allowed'}`}
+                                                >
+                                                    {letter}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
 
                                     <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pr-1">
                                         {sortedCustomerList
-                                            .filter(c => tableMemberSearch.trim() === '' || c.toLowerCase().startsWith(tableMemberSearch.trim().toLowerCase()))
+                                            .filter(c => alphabetFilter === 'TUTTI' || initialOf(c) === alphabetFilter)
                                             .map(cust => {
                                                 const isSitting = currentSittingMembers.includes(cust);
                                                 return (
@@ -1020,7 +1194,7 @@
                                         <Icon name="Lock" className="w-5 h-5 text-emerald-400" />
                                         <span>Chiusura Cassa e Rendicontazione</span>
                                     </h2>
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-wrap gap-2">
                                         <button onClick={handleExportBackup} className="bg-slate-800 hover:bg-slate-700 text-amber-400 font-black text-xs px-3 py-2 rounded-xl border border-slate-700 flex items-center gap-1.5 transition">
                                             <Icon name="Download" className="w-4 h-4" />
                                             <span>Esporta Backup</span>
@@ -1028,15 +1202,34 @@
                                         <label className="bg-slate-800 hover:bg-slate-700 text-white font-black text-xs px-3 py-2 rounded-xl border border-slate-700 flex items-center gap-1.5 transition cursor-pointer">
                                             <Icon name="Upload" className="w-4 h-4 text-emerald-400" />
                                             <span>Importa Backup</span>
-                                            <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
+                                            <input type="file" accept=".json,application/json" onChange={handleImportBackup} className="hidden" data-testid="importa-backup" />
+                                        </label>
+                                        <label className="bg-slate-800 hover:bg-slate-700 text-white font-black text-xs px-3 py-2 rounded-xl border border-slate-700 flex items-center gap-1.5 transition cursor-pointer">
+                                            <Icon name="Settings" className="w-4 h-4 text-sky-400" />
+                                            <span>Carica configurazione</span>
+                                            <input type="file" accept=".json,application/json" onChange={handleLoadConfig} className="hidden" data-testid="carica-configurazione" />
                                         </label>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl text-center space-y-1">
+                                    <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl text-center space-y-2">
                                         <span className="text-[10px] font-black uppercase text-slate-400">Fondo Cassa Iniziale</span>
-                                        <div className="text-2xl font-black text-white">€ {initialFund.toFixed(2)}</div>
+                                        <div className="text-2xl font-black text-white" data-testid="fondo-cassa">€ {initialFund.toFixed(2)}</div>
+                                        <div className="flex items-center justify-center gap-1.5">
+                                            <input
+                                                type="number"
+                                                inputMode="decimal"
+                                                step="0.01"
+                                                min="0"
+                                                placeholder="Nuovo fondo..."
+                                                value={fundDraft}
+                                                onChange={e => setFundDraft(e.target.value)}
+                                                className="w-28 min-w-0 bg-slate-950 border border-slate-800 rounded-xl px-2 py-1.5 text-xs text-white font-bold text-center"
+                                            />
+                                            <button onClick={handleSetFund} disabled={fundDraft === ''} className="bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 font-black text-[11px] px-2.5 py-1.5 rounded-xl">Imposta</button>
+                                            <button onClick={handleResetFund} className="bg-rose-950/60 text-rose-400 border border-rose-900/50 font-black text-[11px] px-2.5 py-1.5 rounded-xl">Azzera</button>
+                                        </div>
                                     </div>
                                     <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl text-center space-y-1">
                                         <span className="text-[10px] font-black uppercase text-slate-400">Totale Incassato Oggi</span>
@@ -1146,7 +1339,7 @@
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {openTabs.map(tab => (
+                                        {[...openTabs].sort((x, y) => tableWeight(x.table) - tableWeight(y.table)).map(tab => (
                                             <div key={tab.id} className="bg-slate-900 border border-slate-800 p-4 rounded-3xl space-y-3 shadow-xl">
                                                 <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                                                     <div>
@@ -1184,13 +1377,72 @@
                                                         </button>
                                                         <button
                                                             onClick={() => {
-                                                                setCheckoutModal({ open: true, order: tab, amountTendered: '', change: 0, selectedCustomerToPay: 'ALL' });
+                                                                openCheckout(tab, 'tab');
                                                             }}
                                                             className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-4 py-2 rounded-xl shadow"
                                                         >
                                                             Incassa
                                                         </button>
                                                     </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* TAB CREDITI: conti rimasti aperti alla chiusura cassa */}
+                        {activeTab === 'credits' && (
+                            <div className="max-w-4xl mx-auto space-y-4">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                                    <h2 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                                        <Icon name="CreditCard" className="w-5 h-5 text-amber-400" />
+                                        <span>Crediti da incassare</span>
+                                    </h2>
+                                    <span className="self-start sm:self-auto bg-amber-500 text-slate-950 px-3 py-1.5 rounded-xl font-black text-xs" data-testid="totale-crediti">
+                                        Totale sospesi: € {creditTabs.reduce((s, c) => s + c.total, 0).toFixed(2)}
+                                    </span>
+                                </div>
+
+                                {creditTabs.length === 0 ? (
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center text-slate-500 text-xs font-bold">
+                                        Nessun credito da incassare. I conti ancora aperti alla chiusura cassa compaiono qui.
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {creditTabs.map(credit => (
+                                            <div key={credit.creditId} className="bg-slate-900 border border-slate-800 p-4 rounded-3xl space-y-3 shadow-xl">
+                                                <div className="flex justify-between items-center gap-2 border-b border-slate-800 pb-2">
+                                                    <div className="min-w-0">
+                                                        <span className="font-black text-sm text-white uppercase">{credit.table}</span>
+                                                        <span className="text-[10px] text-amber-400 font-bold ml-2">del {credit.closureDate}{credit.time ? ` (ore ${credit.time})` : ''}</span>
+                                                    </div>
+                                                    <span className="text-base font-black text-amber-400 shrink-0">€ {credit.total.toFixed(2)}</span>
+                                                </div>
+
+                                                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                                                    {credit.items.map((item, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center gap-2 text-xs">
+                                                            <span className="text-slate-300 min-w-0">
+                                                                <strong className="text-amber-400">{item.qty}x</strong> {item.name}
+                                                                <span className="text-[10px] text-slate-500 font-bold ml-1.5">({customerOf(item)})</span>
+                                                            </span>
+                                                            <span className="font-bold text-white shrink-0">€ {(item.price * item.qty).toFixed(2)}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div className="pt-2 border-t border-slate-800 flex justify-between gap-2">
+                                                    <button onClick={() => handleDeleteCredit(credit)} className="text-xs text-rose-400 hover:text-rose-300 font-bold bg-rose-950/40 px-3 py-2 rounded-xl border border-rose-900/50">
+                                                        Elimina
+                                                    </button>
+                                                    <button
+                                                        onClick={() => openCheckout(credit, 'credit', credit.creditId)}
+                                                        className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-4 py-2 rounded-xl shadow"
+                                                    >
+                                                        Incassa credito
+                                                    </button>
                                                 </div>
                                             </div>
                                         ))}
@@ -1293,180 +1545,169 @@
                         </div>
                     )}
 
-                    {/* MODALE INCASSO */}
-                    {checkoutModal.open && checkoutModal.order && (
+                    {/* MODALE INCASSO (per quantità) */}
+                    {checkoutModal.open && checkoutModal.order && (() => {
+                        const order = checkoutModal.order;
+                        const amountDue = order.items.reduce((sum, item, idx) => sum + item.price * (checkoutModal.selections[idx] || 0), 0);
+                        const selectedCount = order.items.reduce((n, _, idx) => n + (checkoutModal.selections[idx] || 0), 0);
+                        const tenderedNum = parseFloat(checkoutModal.amountTendered) || 0;
+                        const changeDue = Math.max(0, tenderedNum - amountDue);
+                        const payers = Array.from(new Set(order.items.map(customerOf)));
+                        const isCredit = checkoutModal.source === 'credit';
+                        return (
                         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-4 sm:p-5 shadow-2xl space-y-4 max-h-[96vh] overflow-y-auto">
                                 <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                                     <div>
-                                        <span className="text-[10px] text-amber-400 font-black uppercase tracking-wider block">Modalità di Pagamento</span>
-                                        <h3 className="font-black text-base text-white uppercase">Incasso: {checkoutModal.order.table}</h3>
+                                        <span className="text-[10px] text-amber-400 font-black uppercase tracking-wider block">{isCredit ? `Incasso credito del ${order.closureDate}` : 'Incasso totale o parziale'}</span>
+                                        <h3 className="font-black text-base text-white uppercase">Incasso: {order.table}</h3>
                                     </div>
-                                    <button onClick={() => setCheckoutModal({ open: false, order: null, amountTendered: '', change: 0, selectedCustomerToPay: 'ALL' })} className="text-slate-400 hover:text-white font-black text-lg w-7 h-7 bg-slate-800 rounded-xl flex items-center justify-center">×</button>
+                                    <button onClick={() => setCheckoutModal(CLOSED_CHECKOUT)} className="text-slate-400 hover:text-white font-black text-lg w-7 h-7 bg-slate-800 rounded-xl flex items-center justify-center">×</button>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* COLONNA SINISTRA: SELEZIONE SOCIO & RIEPILOGO ARTICOLI */}
+                                    {/* COLONNA SINISTRA: QUANTITÀ DA PAGARE */}
                                     <div className="space-y-3">
                                         <div className="space-y-1.5">
                                             <label className="text-xs font-black uppercase text-slate-300">Chi sta pagando?</label>
-                                            <select
-                                                value={checkoutModal.selectedCustomerToPay}
-                                                onChange={e => setCheckoutModal(prev => ({ ...prev, selectedCustomerToPay: e.target.value, amountTendered: '' }))}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2.5 text-xs text-amber-400 font-black focus:outline-none focus:border-amber-400"
-                                            >
-                                                <option value="ALL">💳 INTERO TAVOLO ({checkoutModal.order.table})</option>
-                                                {Array.from(new Set(checkoutModal.order.items.map(i => i.assignedCustomer || 'Socio'))).map(cust => (
-                                                    <option key={cust} value={cust}>👤 Quota Socio: {cust}</option>
-                                                ))}
-                                            </select>
+                                            <div className="flex gap-1.5">
+                                                <select
+                                                    value={checkoutModal.preset}
+                                                    onChange={e => applyCheckoutPreset(e.target.value)}
+                                                    data-testid="preset-incasso"
+                                                    className="flex-1 min-w-0 bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2.5 text-xs text-amber-400 font-black focus:outline-none focus:border-amber-400"
+                                                >
+                                                    <option value="ALL">💳 INTERO TAVOLO ({order.table})</option>
+                                                    {payers.map(cust => (
+                                                        <option key={cust} value={cust}>👤 Quota Socio: {cust}</option>
+                                                    ))}
+                                                    {checkoutModal.preset === 'CUSTOM' && <option value="CUSTOM">✋ Selezione manuale</option>}
+                                                </select>
+                                                <button
+                                                    onClick={() => applyCheckoutPreset('NONE')}
+                                                    className="shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-[10px] px-2.5 rounded-2xl border border-slate-700"
+                                                >
+                                                    Azzera<br />selezione
+                                                </button>
+                                            </div>
                                         </div>
 
                                         <div className="space-y-1.5">
-                                            <span className="text-[11px] font-black uppercase text-slate-400">
-                                                {checkoutModal.selectedCustomerToPay === 'ALL' ? 'Prodotti Ordinati al Tavolo:' : `Prodotti Ordinati da ${checkoutModal.selectedCustomerToPay}:`}
-                                            </span>
-                                            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 max-h-48 overflow-y-auto space-y-1">
-                                                {checkoutModal.order.items
-                                                    .filter(item => checkoutModal.selectedCustomerToPay === 'ALL' || (item.assignedCustomer || 'Socio') === checkoutModal.selectedCustomerToPay)
-                                                    .map((item, idx) => (
-                                                        <div key={idx} className="flex justify-between items-center text-xs border-b border-slate-800/40 pb-1 last:border-0">
-                                                            <span className="text-slate-200">
-                                                                <strong className="text-amber-400 font-black">{item.qty}x</strong> {item.name}
-                                                                {checkoutModal.selectedCustomerToPay === 'ALL' && (
-                                                                    <span className="text-[10px] text-slate-500 font-bold ml-1.5">({item.assignedCustomer || 'Socio'})</span>
-                                                                )}
-                                                            </span>
-                                                            <span className="font-black text-white font-mono">€ {(item.price * item.qty).toFixed(2)}</span>
+                                            <span className="text-[11px] font-black uppercase text-slate-400">Quantità da pagare:</span>
+                                            <div className="bg-slate-950 p-2 rounded-2xl border border-slate-800 max-h-56 overflow-y-auto space-y-1.5">
+                                                {order.items.map((item, idx) => {
+                                                    const sel = checkoutModal.selections[idx] || 0;
+                                                    return (
+                                                        <div key={idx} data-testid="voce-incasso" className={`border p-2 rounded-xl flex justify-between items-center gap-2 text-xs ${sel > 0 ? 'bg-slate-900 border-amber-500/40' : 'bg-slate-900/40 border-slate-800'}`}>
+                                                            <div className="min-w-0">
+                                                                <div className="font-black text-white uppercase truncate">{item.name}</div>
+                                                                <div className="text-[10px] text-slate-400 font-bold truncate">
+                                                                    € {item.price.toFixed(2)} · ordinati {item.qty} · {customerOf(item)}
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-1 shrink-0">
+                                                                <button onClick={() => changeCheckoutQty(idx, -1)} disabled={sel === 0} aria-label="meno" className="w-8 h-8 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white font-black rounded-lg flex items-center justify-center">−</button>
+                                                                <span className="font-black text-sm text-amber-400 w-7 text-center">{sel}</span>
+                                                                <button onClick={() => changeCheckoutQty(idx, 1)} disabled={sel === item.qty} aria-label="più" className="w-8 h-8 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white font-black rounded-lg flex items-center justify-center">+</button>
+                                                            </div>
                                                         </div>
-                                                    ))}
+                                                    );
+                                                })}
                                             </div>
                                         </div>
 
                                         {/* RIEPILOGO TOTALE E RESTO */}
-                                        {(() => {
-                                            const amountDue = checkoutModal.selectedCustomerToPay === 'ALL'
-                                                ? checkoutModal.order.total
-                                                : checkoutModal.order.items
-                                                    .filter(i => (i.assignedCustomer || 'Socio') === checkoutModal.selectedCustomerToPay)
-                                                    .reduce((sum, i) => sum + i.price * i.qty, 0);
-
-                                            const tenderedNum = parseFloat(checkoutModal.amountTendered) || 0;
-                                            const changeDue = Math.max(0, tenderedNum - amountDue);
-
-                                            return (
-                                                <div className="grid grid-cols-2 gap-2 pt-1">
-                                                    <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-center">
-                                                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Totale da Pagar:</span>
-                                                        <div className="text-2xl font-black text-amber-400">€ {amountDue.toFixed(2)}</div>
-                                                    </div>
-
-                                                    <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-center">
-                                                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Resto da Dare:</span>
-                                                        <div className={`text-2xl font-black ${tenderedNum >= amountDue && tenderedNum > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
-                                                            € {changeDue.toFixed(2)}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
-
-                                    {/* COLONNA DESTRA: INSERIMENTO CONTANTE E TASTIERINO LATERALE */}
-                                    {(() => {
-                                        const amountDue = checkoutModal.selectedCustomerToPay === 'ALL'
-                                            ? checkoutModal.order.total
-                                            : checkoutModal.order.items
-                                                .filter(i => (i.assignedCustomer || 'Socio') === checkoutModal.selectedCustomerToPay)
-                                                .reduce((sum, i) => sum + i.price * i.qty, 0);
-
-                                        return (
-                                            <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-3 flex flex-col justify-between">
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-black uppercase text-amber-400 block">Contante Ricevuto (€):</label>
-                                                    <input
-                                                        type="text"
-                                                        readOnly
-                                                        placeholder="0.00"
-                                                        value={checkoutModal.amountTendered ? `€ ${checkoutModal.amountTendered}` : ''}
-                                                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2 text-center text-xl font-black text-white focus:outline-none"
-                                                    />
-
-                                                    {/* BANCONOTE RAPIDE */}
-                                                    <div className="grid grid-cols-5 gap-1 pt-1">
-                                                        <button
-                                                            onClick={() => setCheckoutModal(prev => ({ ...prev, amountTendered: amountDue.toFixed(2) }))}
-                                                            className="bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 font-black text-[10px] py-1.5 rounded-xl transition"
-                                                        >
-                                                            ESATTO
-                                                        </button>
-                                                        {[5, 10, 20, 50].map(val => (
-                                                            <button
-                                                                key={val}
-                                                                onClick={() => setCheckoutModal(prev => ({ ...prev, amountTendered: val.toString() }))}
-                                                                className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-400 font-black text-xs py-1.5 rounded-xl transition"
-                                                            >
-                                                                €{val}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* TASTIERINO NUMERICO VIRTUALE LATERALE */}
-                                                <div className="grid grid-cols-3 gap-1.5 pt-1">
-                                                    {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
-                                                        <button
-                                                            key={num}
-                                                            onClick={() => setCheckoutModal(prev => ({
-                                                                ...prev,
-                                                                amountTendered: prev.amountTendered + num
-                                                            }))}
-                                                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-black text-base py-3 rounded-xl transition active:scale-95 shadow"
-                                                        >
-                                                            {num}
-                                                        </button>
-                                                    ))}
-                                                    <button
-                                                        onClick={() => setCheckoutModal(prev => ({
-                                                            ...prev,
-                                                            amountTendered: prev.amountTendered.includes('.') ? prev.amountTendered : (prev.amountTendered === '' ? '0.' : prev.amountTendered + '.')
-                                                        }))}
-                                                        className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-400 font-black text-lg py-3 rounded-xl transition active:scale-95"
-                                                    >
-                                                        .
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setCheckoutModal(prev => ({
-                                                            ...prev,
-                                                            amountTendered: prev.amountTendered + '0'
-                                                        }))}
-                                                        className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-black text-base py-3 rounded-xl transition active:scale-95 shadow"
-                                                    >
-                                                        0
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setCheckoutModal(prev => ({
-                                                            ...prev,
-                                                            amountTendered: prev.amountTendered.slice(0, -1)
-                                                        }))}
-                                                        className="bg-slate-900 hover:bg-rose-950/60 border border-slate-800 text-rose-400 font-black text-xs py-3 rounded-xl transition active:scale-95 flex items-center justify-center"
-                                                    >
-                                                        ⌫
-                                                    </button>
+                                        <div className="grid grid-cols-2 gap-2 pt-1">
+                                            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-center">
+                                                <span className="text-[10px] text-slate-400 font-bold uppercase block">Da incassare ora:</span>
+                                                <div className="text-2xl font-black text-amber-400" data-testid="da-incassare">€ {amountDue.toFixed(2)}</div>
+                                            </div>
+                                            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-center">
+                                                <span className="text-[10px] text-slate-400 font-bold uppercase block">Resto da dare:</span>
+                                                <div className={`text-2xl font-black ${tenderedNum >= amountDue && tenderedNum > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                    € {changeDue.toFixed(2)}
                                                 </div>
                                             </div>
-                                        );
-                                    })()}
+                                        </div>
+                                    </div>
+
+                                    {/* COLONNA DESTRA: INSERIMENTO CONTANTE E TASTIERINO */}
+                                    <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-3 flex flex-col justify-between">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-black uppercase text-amber-400 block">Contante Ricevuto (€):</label>
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                placeholder="0.00"
+                                                value={checkoutModal.amountTendered ? `€ ${checkoutModal.amountTendered}` : ''}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2 text-center text-xl font-black text-white focus:outline-none"
+                                            />
+
+                                            {/* BANCONOTE RAPIDE */}
+                                            <div className="grid grid-cols-5 gap-1 pt-1">
+                                                <button
+                                                    onClick={() => setCheckoutModal(prev => ({ ...prev, amountTendered: amountDue.toFixed(2) }))}
+                                                    className="bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 font-black text-[10px] py-1.5 rounded-xl transition"
+                                                >
+                                                    ESATTO
+                                                </button>
+                                                {[5, 10, 20, 50].map(val => (
+                                                    <button
+                                                        key={val}
+                                                        onClick={() => setCheckoutModal(prev => ({ ...prev, amountTendered: val.toString() }))}
+                                                        className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-400 font-black text-xs py-1.5 rounded-xl transition"
+                                                    >
+                                                        €{val}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* TASTIERINO NUMERICO */}
+                                        <div className="grid grid-cols-3 gap-1.5 pt-1">
+                                            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
+                                                <button
+                                                    key={num}
+                                                    onClick={() => setCheckoutModal(prev => ({ ...prev, amountTendered: prev.amountTendered + num }))}
+                                                    className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-black text-base py-3 rounded-xl transition active:scale-95 shadow"
+                                                >
+                                                    {num}
+                                                </button>
+                                            ))}
+                                            <button
+                                                onClick={() => setCheckoutModal(prev => ({
+                                                    ...prev,
+                                                    amountTendered: prev.amountTendered.includes('.') ? prev.amountTendered : (prev.amountTendered === '' ? '0.' : prev.amountTendered + '.')
+                                                }))}
+                                                className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-400 font-black text-lg py-3 rounded-xl transition active:scale-95"
+                                            >
+                                                .
+                                            </button>
+                                            <button
+                                                onClick={() => setCheckoutModal(prev => ({ ...prev, amountTendered: prev.amountTendered + '0' }))}
+                                                className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-black text-base py-3 rounded-xl transition active:scale-95 shadow"
+                                            >
+                                                0
+                                            </button>
+                                            <button
+                                                onClick={() => setCheckoutModal(prev => ({ ...prev, amountTendered: prev.amountTendered.slice(0, -1) }))}
+                                                className="bg-slate-900 hover:bg-rose-950/60 border border-slate-800 text-rose-400 font-black text-xs py-3 rounded-xl transition active:scale-95 flex items-center justify-center"
+                                            >
+                                                ⌫
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="sticky -bottom-4 sm:-bottom-5 -mx-4 sm:-mx-5 -mb-4 sm:-mb-5 px-4 sm:px-5 pt-3 pb-4 sm:pb-5 bg-slate-900 border-t border-slate-800">
-                                    <button onClick={confirmPayment} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm py-3.5 rounded-2xl transition shadow-lg uppercase tracking-wider">
-                                        CONFERMA INCASSO
+                                    <button onClick={confirmPayment} disabled={selectedCount === 0} className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 font-black text-sm py-3.5 rounded-2xl transition shadow-lg uppercase tracking-wider">
+                                        {selectedCount === 0 ? 'Seleziona cosa incassare' : `CONFERMA INCASSO € ${amountDue.toFixed(2)}`}
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    )}
+                        );
+                    })()}
                 </div>
             );
         }
