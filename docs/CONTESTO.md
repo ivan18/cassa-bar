@@ -42,10 +42,10 @@ src/orig.html ──build.mjs──▶ index.html (+ sw.js, manifest.webmanifest
 | `cassa_products` | listino `[{id, name, category, price, color}]` |
 | `cassa_customerList` | nomi dei soci, ordinati |
 | `cassa_tableMembersMap` | `{ "Tavolo 1": ["Marco", …] }` soci seduti |
-| `cassa_openTabs` | conti aperti `[{id, table, items, total, time, members}]` |
+| `cassa_openTabs` | conti aperti `[{id, table, items, total, time, members}]`; `assignedCustomer: ''` = Tavolo Generico (v4.2) |
 | `cassa_salesHistory` | vendite dall'ultima chiusura `[{id, time, table, customerName, items, total}]` |
 | `cassa_creditTabs` | crediti `[{creditId, closureDate, table, items, total, time, members}]` (v4) |
-| `cassa_dailyClosuresHistory` | chiusure registrate (da v4 con `creditsCreated`) |
+| `cassa_dailyClosuresHistory` | chiusure registrate (da v4 con `creditsCreated`, da v4.2 con `sales`: vendite della serata `[{time, table, customerName, total, items:[{name, qty, price, assignedCustomer}]}]`) |
 | `cassa_pinSalt`, `cassa_pinHash` | PIN del dispositivo (da configurazione o backup, v4); se mancano vale quello della build |
 | `cassa_initialFund` | fondo cassa |
 | `cassa_clubName`, `cassa_registerName` | intestazione |

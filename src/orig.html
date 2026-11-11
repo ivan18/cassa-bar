@@ -23,6 +23,7 @@
         button, label { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         .no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }
         @media (max-width: 640px) { input, select { font-size: 16px !important; } }
+        @media print { body { background: #fff !important; color: #000 !important; } }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950">
@@ -74,7 +75,25 @@
         const initialOf = (name) => name.trim().normalize('NFD').replace(/[̀-ͯ]/g, '').charAt(0).toUpperCase();
         const shortDate = (d) => d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
         const sumItems = (items) => items.reduce((s, i) => s + i.price * i.qty, 0);
-        const customerOf = (item) => item.assignedCustomer || 'Socio';
+        // Voce senza socio: resta del tavolo (rientra in "Intero tavolo", in nessuna quota socio)
+        const GENERIC_LABEL = 'Tavolo Generico';
+        const customerOf = (item) => item.assignedCustomer || GENERIC_LABEL;
+        // Vendita archiviata nella chiusura: solo i campi che servono al rendiconto
+        const compactSale = (sale) => ({
+            time: sale.time, table: sale.table, customerName: sale.customerName, total: sale.total,
+            items: sale.items.map(i => ({ name: i.name, qty: i.qty, price: i.price, assignedCustomer: i.assignedCustomer || '' }))
+        });
+        // Scrittura nel localStorage che non blocca l'app se la memoria è piena
+        let storageWarned = false;
+        function saveStorage(key, value) {
+            try { localStorage.setItem(key, value); } catch (err) {
+                if (!storageWarned) {
+                    storageWarned = true;
+                    alert('Memoria del dispositivo piena: alcuni dati non sono stati salvati.\nEsporta un backup ed elimina le chiusure più vecchie dall\'archivio.');
+                }
+            }
+        }
+        const itemsText = (items) => items.map(i => `${i.qty}x ${i.name}${i.assignedCustomer ? ` (${i.assignedCustomer})` : ''}`).join(', ');
 
         function Icon({ name, className = "w-5 h-5" }) {
             useEffect(() => {
@@ -102,13 +121,10 @@
             useEffect(() => { localStorage.setItem('cassa_registerName', registerName); }, [registerName]);
 
             // Autenticazione Password
-            const [authModal, setAuthModal] = useState({
-                open: false,
-                targetTab: '',
-                requiredRole: '',
-                passwordInput: '',
-                error: ''
-            });
+            // action: { type: 'tab', tab } | { type: 'deleteCredit', creditId } | { type: 'deleteTab', id }
+            const CLOSED_AUTH = { open: false, action: null, message: '', passwordInput: '', error: '' };
+            const [authModal, setAuthModal] = useState(CLOSED_AUTH);
+            const requestPin = (action, message = '') => setAuthModal({ ...CLOSED_AUTH, open: true, action, message });
 
             // Persistenza Dati
             const [products, setProducts] = useState(() => {
@@ -136,14 +152,14 @@
                 const saved = localStorage.getItem('cassa_salesHistory');
                 return saved ? JSON.parse(saved) : [];
             });
-            useEffect(() => { localStorage.setItem('cassa_salesHistory', JSON.stringify(salesHistory)); }, [salesHistory]);
+            useEffect(() => { saveStorage('cassa_salesHistory', JSON.stringify(salesHistory)); }, [salesHistory]);
 
             // Storico Chiusure Cassa Registrate
             const [dailyClosuresHistory, setDailyClosuresHistory] = useState(() => {
                 const saved = localStorage.getItem('cassa_dailyClosuresHistory');
                 return saved ? JSON.parse(saved) : [];
             });
-            useEffect(() => { localStorage.setItem('cassa_dailyClosuresHistory', JSON.stringify(dailyClosuresHistory)); }, [dailyClosuresHistory]);
+            useEffect(() => { saveStorage('cassa_dailyClosuresHistory', JSON.stringify(dailyClosuresHistory)); }, [dailyClosuresHistory]);
 
             // Fondo Cassa
             const [initialFund, setInitialFund] = useState(() => {
@@ -205,6 +221,17 @@
             }, [devicePin]);
 
             const [fundDraft, setFundDraft] = useState('');
+            // Descrizione facoltativa della battuta rapida extra
+            const [extraDesc, setExtraDesc] = useState('');
+            // Report da stampare: null oppure { kind: 'serata' } / { kind: 'chiusura', closure }
+            const [report, setReport] = useState(null);
+            useEffect(() => {
+                if (!report) return;
+                const clear = () => setReport(null);
+                window.addEventListener('afterprint', clear);
+                window.print();
+                return () => window.removeEventListener('afterprint', clear);
+            }, [report]);
 
             const [newMemberName, setNewMemberName] = useState('');
 
@@ -260,8 +287,11 @@
                 }
                 const pin = devicePin || { salt: PIN_SALT, hash: PIN_HASH };
                 if (pass && await sha256Hex(pin.salt + pass) === pin.hash) {
-                    setActiveTab(authModal.targetTab);
-                    setAuthModal({ open: false, targetTab: '', requiredRole: '', passwordInput: '', error: '' });
+                    const action = authModal.action || {};
+                    if (action.type === 'tab') setActiveTab(action.tab);
+                    if (action.type === 'deleteCredit') setCreditTabs(prev => prev.filter(c => c.creditId !== action.creditId));
+                    if (action.type === 'deleteTab') setOpenTabs(prev => prev.filter(t => t.id !== action.id));
+                    setAuthModal(CLOSED_AUTH);
                 } else {
                     setAuthModal(prev => ({ ...prev, error: 'PIN errato!', passwordInput: '' }));
                 }
@@ -323,11 +353,11 @@
                     return;
                 }
 
-                const currentMember = activeCustomer || (currentSittingMembers.length > 0 ? currentSittingMembers[0] : 'Socio');
+                const currentMember = activeCustomer || '';
                 const cartItemId = `${product.id}_${currentMember}_${Date.now()}`;
 
                 setCart(prev => {
-                    const existingIndex = prev.findIndex(item => item.id === product.id && item.assignedCustomer === currentMember);
+                    const existingIndex = prev.findIndex(item => item.id === product.id && (item.assignedCustomer || '') === currentMember);
                     if (existingIndex > -1) {
                         return prev.map((item, idx) => idx === existingIndex ? { ...item, qty: item.qty + 1 } : item);
                     }
@@ -336,13 +366,15 @@
             };
 
             const addCustomPriceToCart = (amount) => {
+                const name = extraDesc.trim().toUpperCase() || 'EXTRA';
+                setExtraDesc('');
                 if (applyToAllMembers && currentSittingMembers.length > 0) {
                     setCart(prev => {
                         let updated = [...prev];
                         currentSittingMembers.forEach(member => {
                             const extraProduct = {
                                 id: `extra_${Date.now()}_${Math.random()}`,
-                                name: 'EXTRA',
+                                name,
                                 category: 'Extra',
                                 price: amount,
                                 color: 'bg-slate-800 text-amber-400 border-amber-400'
@@ -355,15 +387,15 @@
                     return;
                 }
 
-                const currentMember = activeCustomer || (currentSittingMembers.length > 0 ? currentSittingMembers[0] : 'Socio');
+                const currentMember = activeCustomer || '';
                 const extraProduct = {
                     id: `extra_${Date.now()}_${Math.random()}`,
-                    name: 'EXTRA',
+                    name,
                     category: 'Extra',
                     price: amount,
                     color: 'bg-slate-800 text-amber-400 border-amber-400'
                 };
-                const cartItemId = `extra_${Date.now()}_${currentMember}`;
+                const cartItemId = `extra_${Date.now()}_${currentMember}_${Math.random()}`;
                 setCart(prev => [...prev, { ...extraProduct, cartItemId, qty: 1, assignedCustomer: currentMember }]);
             };
 
@@ -547,9 +579,7 @@
                 setCustomerList(prev => prev.filter(c => c !== name));
             };
 
-            const deleteOpenTab = (id) => {
-                setOpenTabs(prev => prev.filter(t => t.id !== id));
-            };
+            const deleteOpenTab = (tab) => requestPin({ type: 'deleteTab', id: tab.id }, `Elimina il conto di ${tab.table} (€ ${tab.total.toFixed(2)})`);
 
             const handlePerformDailyClosure = () => {
                 if (openTabs.length > 0 && !confirm(`Ci sono ${openTabs.length} conti aperti: con la chiusura passeranno nei CREDITI e i tavoli verranno liberati. Confermi?`)) return;
@@ -586,7 +616,9 @@
                     presidentAmount: presidentVal,
                     reasonNotes: closureForm.reasonNotes || 'Consegna Incasso',
                     newInitialFundForNextDay: remainingFundForTomorrow,
-                    creditsCreated: movedCount
+                    creditsCreated: movedCount,
+                    // Vendite della serata, dalla più vecchia alla più recente
+                    sales: [...salesHistory].reverse().map(compactSale)
                 };
 
                 setDailyClosuresHistory(prev => [newClosure, ...prev]);
@@ -598,15 +630,14 @@
                     (movedCount > 0 ? `\n\n${movedCount} ${movedCount === 1 ? 'conto aperto è passato' : 'conti aperti sono passati'} nei CREDITI.` : ''));
             };
 
-            const handleDeleteClosure = (id) => {
-                setDailyClosuresHistory(prev => prev.filter(c => c.id !== id));
+            const handleDeleteClosure = (closure) => {
+                if (!confirm(`Eliminare dall'archivio la chiusura del ${closure.date} ore ${closure.time}? Si perdono anche le vendite registrate.`)) return;
+                setDailyClosuresHistory(prev => prev.filter(c => c.id !== closure.id));
             };
 
-            // Elimina credito: per ora solo conferma (protezione con PIN: decisione D3 aperta)
-            const handleDeleteCredit = (credit) => {
-                if (!confirm(`Eliminare il credito di ${credit.table} del ${credit.closureDate} (€ ${credit.total.toFixed(2)})? Il debito verrà cancellato.`)) return;
-                setCreditTabs(prev => prev.filter(c => c.creditId !== credit.creditId));
-            };
+            // Elimina credito: cancella un debito, quindi chiede il PIN (D3)
+            const handleDeleteCredit = (credit) => requestPin({ type: 'deleteCredit', creditId: credit.creditId },
+                `Elimina il credito di ${credit.table} del ${credit.closureDate} (€ ${credit.total.toFixed(2)})`);
 
             // Fondo cassa impostato a mano
             const handleSetFund = () => {
@@ -729,7 +760,8 @@
             };
 
             return (
-                <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-28 lg:pb-10">
+                <>
+                <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-28 lg:pb-10 print:hidden">
                     {/* INTESTAZIONE E BARRA SUPERIORE IN BLU ELETTRICO */}
                     <header className="bg-blue-600 border-b border-blue-500 px-3 sm:px-4 py-2.5 sm:py-3 sticky top-0 z-40 shadow-xl">
                         <div className="max-w-7xl mx-auto flex flex-col xl:flex-row xl:justify-between xl:items-center gap-2 xl:gap-3">
@@ -765,9 +797,7 @@
                                             key={tab.id}
                                             data-tab={tab.id}
                                             aria-label={tab.badge > 0 ? `${tab.label} (${tab.badge})` : tab.label}
-                                            onClick={() => tab.locked
-                                                ? setAuthModal({ open: true, targetTab: tab.id, requiredRole: 'admin', passwordInput: '', error: '' })
-                                                : setActiveTab(tab.id)}
+                                            onClick={() => tab.locked ? requestPin({ type: 'tab', tab: tab.id }) : setActiveTab(tab.id)}
                                             className={`relative min-w-0 md:flex-auto xl:flex-none px-1.5 md:px-2.5 xl:px-3 py-1.5 md:py-2 rounded-xl font-black text-[10px] sm:text-[11px] md:text-xs flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1.5 transition whitespace-nowrap ${isActive ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
                                         >
                                             <Icon name={tab.icon} className={`w-4 h-4 shrink-0 ${tab.locked && !isActive ? 'text-blue-200' : ''}`} />
@@ -840,6 +870,16 @@
                                                     <span>👥 {applyToAllMembers ? 'TUTTI (ON)' : 'TUTTI'}</span>
                                                 </button>
 
+                                                <button
+                                                    onClick={() => {
+                                                        setApplyToAllMembers(false);
+                                                        setActiveCustomer('');
+                                                    }}
+                                                    className={`px-3 py-2 rounded-xl text-xs font-black transition border shrink-0 ${(!applyToAllMembers && activeCustomer === '') ? 'bg-amber-400 text-slate-950 border-white ring-2 ring-amber-400' : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800'}`}
+                                                >
+                                                    📌 {GENERIC_LABEL}
+                                                </button>
+
                                                 <span className="text-slate-600 font-bold text-xs shrink-0">|</span>
 
                                                 {currentSittingMembers.map(m => (
@@ -884,7 +924,18 @@
                                     </div>
 
                                     <div className="bg-slate-900 border border-slate-800 p-3 rounded-3xl shadow-xl space-y-2">
-                                        <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider">Battuta Rapida Extra:</span>
+                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                                            <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider shrink-0">Battuta Rapida Extra:</span>
+                                            <input
+                                                type="text"
+                                                placeholder="Descrizione facoltativa (es. Corretto, Gelato)"
+                                                value={extraDesc}
+                                                onChange={e => setExtraDesc(e.target.value)}
+                                                maxLength={40}
+                                                data-testid="descrizione-extra"
+                                                className="w-full sm:w-72 min-w-0 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-amber-300 font-bold placeholder-slate-600 focus:outline-none focus:border-amber-400"
+                                            />
+                                        </div>
                                         <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
                                             {Array.from({ length: 20 }, (_, i) => (i + 1) * 0.10).map(val => (
                                                 <button
@@ -921,7 +972,7 @@
                                                         <div className="flex justify-between items-start">
                                                             <div>
                                                                 <span className="font-black text-xs text-white uppercase block">{item.name}</span>
-                                                                <span className="text-[10px] text-amber-400 font-bold">👤 {item.assignedCustomer || 'Socio'}</span>
+                                                                <span className="text-[10px] text-amber-400 font-bold">👤 {customerOf(item)}</span>
                                                             </div>
                                                             <span className="font-black text-xs text-white">€ {(item.price * item.qty).toFixed(2)}</span>
                                                         </div>
@@ -932,10 +983,14 @@
                                                                 <button onClick={() => updateCartQtyByCartItemId(item.cartItemId, 1)} className="w-6 h-6 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-black text-xs flex items-center justify-center">+</button>
                                                             </div>
                                                             <select
-                                                                value={item.assignedCustomer || 'Socio'}
+                                                                value={item.assignedCustomer || ''}
                                                                 onChange={e => updateItemCustomer(item.cartItemId, e.target.value)}
                                                                 className="min-w-0 max-w-[65%] truncate bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-300 rounded-lg px-2 py-0.5"
                                                             >
+                                                                <option value="">{GENERIC_LABEL}</option>
+                                                                {item.assignedCustomer && !currentSittingMembers.includes(item.assignedCustomer) && (
+                                                                    <option value={item.assignedCustomer}>{item.assignedCustomer}</option>
+                                                                )}
                                                                 {currentSittingMembers.map(c => (
                                                                     <option key={c} value={c}>{c}</option>
                                                                 ))}
@@ -1109,10 +1164,16 @@
                         {/* TAB STORICO VENDITE */}
                         {activeTab === 'history' && (
                             <div className="max-w-4xl mx-auto space-y-4">
-                                <h2 className="text-lg font-black uppercase text-white flex items-center gap-2">
-                                    <Icon name="History" className="w-5 h-5 text-amber-400" />
-                                    <span>Storico Vendite di Oggi</span>
-                                </h2>
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                                    <h2 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                                        <Icon name="History" className="w-5 h-5 text-amber-400" />
+                                        <span>Vendite dall'ultima chiusura</span>
+                                    </h2>
+                                    <button onClick={() => setReport({ kind: 'serata' })} className="self-start sm:self-auto bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl transition shadow flex items-center gap-1.5" data-testid="stampa-serata">
+                                        <Icon name="Printer" className="w-4 h-4" />
+                                        <span>Stampa report</span>
+                                    </button>
+                                </div>
 
                                 {salesHistory.length === 0 ? (
                                     <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center text-slate-500 text-xs font-bold">
@@ -1272,9 +1333,15 @@
                                                             Causale: {closure.reasonNotes} | Fondo Cassa per l'indomani: €{closure.newInitialFundForNextDay.toFixed(2)}
                                                         </div>
                                                     </div>
-                                                    <button onClick={() => handleDeleteClosure(closure.id)} className="text-rose-400 hover:text-rose-300 text-xs font-bold px-2 py-1 bg-rose-950/40 border border-rose-900/50 rounded-xl">
-                                                        Elimina
-                                                    </button>
+                                                    <div className="flex gap-2 shrink-0">
+                                                        <button onClick={() => setReport({ kind: 'chiusura', closure })} className="text-amber-400 hover:text-amber-300 text-xs font-bold px-2 py-1 bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1" data-testid="stampa-chiusura">
+                                                            <Icon name="Printer" className="w-3.5 h-3.5" />
+                                                            <span>Report</span>
+                                                        </button>
+                                                        <button onClick={() => handleDeleteClosure(closure)} className="text-rose-400 hover:text-rose-300 text-xs font-bold px-2 py-1 bg-rose-950/40 border border-rose-900/50 rounded-xl">
+                                                            Elimina
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -1312,7 +1379,7 @@
                                                         <div key={idx} className="flex justify-between items-center text-xs">
                                                             <span className="text-slate-300">
                                                                 <strong className="text-amber-400">{item.qty}x</strong> {item.name}
-                                                                <span className="text-[10px] text-slate-500 font-bold ml-1.5">({item.assignedCustomer || 'Socio'})</span>
+                                                                <span className="text-[10px] text-slate-500 font-bold ml-1.5">({customerOf(item)})</span>
                                                             </span>
                                                             <span className="font-bold text-white">€ {(item.price * item.qty).toFixed(2)}</span>
                                                         </div>
@@ -1320,7 +1387,7 @@
                                                 </div>
 
                                                 <div className="pt-2 border-t border-slate-800 flex justify-between gap-2">
-                                                    <button onClick={() => deleteOpenTab(tab.id)} className="text-xs text-rose-400 hover:text-rose-300 font-bold bg-rose-950/40 px-3 py-2 rounded-xl border border-rose-900/50">
+                                                    <button onClick={() => deleteOpenTab(tab)} className="text-xs text-rose-400 hover:text-rose-300 font-bold bg-rose-950/40 px-3 py-2 rounded-xl border border-rose-900/50">
                                                         Elimina
                                                     </button>
                                                     <div className="flex gap-2">
@@ -1496,6 +1563,7 @@
                                 </div>
                                 <div>
                                     <h3 className="font-black text-base text-white uppercase">Area Protetta</h3>
+                                    {authModal.message && <p className="text-xs text-rose-300 font-bold mt-1" data-testid="pin-motivo">{authModal.message}</p>}
                                     <p className="text-xs text-slate-400 font-bold mt-1">Inserisci il PIN:</p>
                                 </div>
                                 <input
@@ -1538,7 +1606,7 @@
                                 </div>
 
                                 <div className="flex gap-2 pt-2">
-                                    <button onClick={() => setAuthModal({ open: false, targetTab: '', requiredRole: '', passwordInput: '', error: '' })} className="flex-1 bg-slate-800 text-slate-300 font-bold text-xs py-2.5 rounded-2xl">
+                                    <button onClick={() => setAuthModal(CLOSED_AUTH)} className="flex-1 bg-slate-800 text-slate-300 font-bold text-xs py-2.5 rounded-2xl">
                                         Annulla
                                     </button>
                                     <button onClick={handleAuthenticate} className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-2.5 rounded-2xl shadow">
@@ -1556,7 +1624,7 @@
                         const selectedCount = order.items.reduce((n, _, idx) => n + (checkoutModal.selections[idx] || 0), 0);
                         const tenderedNum = parseFloat(checkoutModal.amountTendered) || 0;
                         const changeDue = Math.max(0, tenderedNum - amountDue);
-                        const payers = Array.from(new Set(order.items.map(customerOf)));
+                        const payers = Array.from(new Set(order.items.map(customerOf))).filter(c => c !== GENERIC_LABEL);
                         const isCredit = checkoutModal.source === 'credit';
                         return (
                         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
@@ -1712,6 +1780,103 @@
                         </div>
                         );
                     })()}
+                </div>
+                {report && (
+                    <PrintReport
+                        report={report}
+                        clubName={clubName}
+                        registerName={registerName}
+                        salesHistory={salesHistory}
+                        creditTabs={creditTabs}
+                        initialFund={initialFund}
+                    />
+                )}
+                </>
+            );
+        }
+
+        // Report stampabile (Stampa → Salva come PDF): visibile solo in stampa
+        function PrintReport({ report, clubName, registerName, salesHistory, creditTabs, initialFund }) {
+            const euro = (v) => `€ ${v.toFixed(2)}`;
+            const isClosure = report.kind === 'chiusura';
+            const c = report.closure;
+            const sales = isClosure ? c.sales : [...salesHistory].reverse();
+            const totalSales = isClosure ? c.totalSales : salesHistory.reduce((s, x) => s + x.total, 0);
+            const cell = 'border border-gray-400 px-2 py-1 text-left align-top';
+            const rows = isClosure ? [
+                ['Cassiere', c.cashierName],
+                ['Fondo cassa iniziale', euro(c.initialFund)],
+                ['Totale incassato', euro(c.totalSales)],
+                ['Totale in cassa', euro(c.initialFund + c.totalSales)],
+                ['Consegnato al presidente', euro(c.presidentAmount)],
+                ['Fondo cassa per il giorno dopo', euro(c.newInitialFundForNextDay)],
+                ['Causale', c.reasonNotes],
+                ...(c.creditsCreated ? [['Conti passati nei crediti', String(c.creditsCreated)]] : [])
+            ] : [
+                ['Fondo cassa iniziale', euro(initialFund)],
+                ['Totale incassato', euro(totalSales)],
+                ['Totale in cassa', euro(initialFund + totalSales)],
+                ['Crediti da incassare', euro(creditTabs.reduce((s, x) => s + x.total, 0))]
+            ];
+            return (
+                <div id="report-stampa" className="hidden print:block bg-white text-black text-[11px] p-4 font-sans">
+                    <h1 className="text-lg font-black uppercase">{clubName}</h1>
+                    <p className="text-gray-600">{registerName} · {isClosure
+                        ? `Chiusura cassa del ${c.date} ore ${c.time}`
+                        : `Vendite dall'ultima chiusura · stampato il ${new Date().toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}`}</p>
+                    <table className="mt-3 border-collapse">
+                        <tbody>
+                            {rows.map(([k, v]) => (
+                                <tr key={k}><td className={`${cell} font-bold`}>{k}</td><td className={cell}>{v}</td></tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    <h2 className="mt-4 text-sm font-black uppercase">Vendite{sales ? ` (${sales.length})` : ''}</h2>
+                    {!sales ? (
+                        <p className="text-gray-600">Dettaglio non disponibile: chiusura registrata prima della versione 4.2.</p>
+                    ) : sales.length === 0 ? (
+                        <p className="text-gray-600">Nessuna vendita.</p>
+                    ) : (
+                        <table className="mt-1 w-full border-collapse">
+                            <thead>
+                                <tr className="bg-gray-200">
+                                    <th className={cell}>Ora</th><th className={cell}>Tavolo</th><th className={cell}>Pagato da</th>
+                                    <th className={cell}>Articoli</th><th className={`${cell} text-right`}>Importo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {sales.map((s, i) => (
+                                    <tr key={i}>
+                                        <td className={cell}>{s.time}</td><td className={cell}>{s.table}</td><td className={cell}>{s.customerName}</td>
+                                        <td className={cell}>{itemsText(s.items)}</td><td className={`${cell} text-right`}>{euro(s.total)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+
+                    {!isClosure && creditTabs.length > 0 && (
+                        <>
+                            <h2 className="mt-4 text-sm font-black uppercase">Crediti da incassare ({creditTabs.length})</h2>
+                            <table className="mt-1 w-full border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-200">
+                                        <th className={cell}>Del</th><th className={cell}>Tavolo</th>
+                                        <th className={cell}>Articoli</th><th className={`${cell} text-right`}>Importo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {creditTabs.map(cr => (
+                                        <tr key={cr.creditId}>
+                                            <td className={cell}>{cr.closureDate}</td><td className={cell}>{cr.table}</td>
+                                            <td className={cell}>{itemsText(cr.items)}</td><td className={`${cell} text-right`}>{euro(cr.total)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </>
+                    )}
                 </div>
             );
         }

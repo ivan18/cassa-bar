@@ -7,6 +7,8 @@ Verifica:
 - base: nessuna richiesta esterna, nessun errore JS, incasso completo, PIN errato
   rifiutato / corretto accettato, nessun suggerimento del PIN, nessuno sforamento
   a 375 / 768 / 1024 px;
+- v4.2: Tavolo Generico, descrizione della battuta extra, PIN su Elimina conto ed
+  Elimina credito, chiusura che archivia le vendite, report stampabile;
 - v4: incasso per quantità (preselezione, quota socio, parziale, socio che esce),
   conti aperti ordinati, filtro A-Z, fondo cassa manuale, chiusura con crediti e
   incasso parziale del credito, file di configurazione (soci + PIN), backup con
@@ -125,8 +127,24 @@ def add(page, member, product, times=1):
         page.click(f'button:has-text("{product}")')
 
 
+def pin_action(page, code):
+    """Finestra PIN già aperta da un'azione (es. Elimina): digita il PIN e conferma. Restituisce il motivo mostrato."""
+    reason = page.inner_text('[data-testid="pin-motivo"]') if page.locator('[data-testid="pin-motivo"]').count() else ''
+    for d in code:
+        page.click(f'button:text-is("{d}")')
+    page.click('text=Accedi')
+    page.wait_for_timeout(250)
+    if page.locator('text=Area Protetta').count():
+        page.click('text=Annulla')
+    return reason
+
+
 def due(page):
     return page.inner_text('[data-testid="da-incassare"]').replace('€', '').strip()
+
+
+def ls_cart_label(page):
+    return page.locator('#comanda select').first.evaluate('s => s.options[s.selectedIndex].text')
 
 
 def write_json(name, data):
@@ -255,8 +273,11 @@ with sync_playwright() as p:
     check('storico: "Credito del gg/mm"', re.search(r'Credito del \d\d/\d\d', page.inner_text('main')) is not None)
     nav(page, 'CREDITI')
     page.locator('main .grid > div', has_text='Tavolo 2').locator('button:has-text("Elimina")').click()
-    check('elimina credito (con conferma)', len(ls(page, 'cassa_creditTabs')) == 2
-          and any('Eliminare il credito' in d for d in page.dialogs))
+    reason = pin_action(page, WRONG)
+    check('elimina credito: con PIN errato il credito resta', len(ls(page, 'cassa_creditTabs')) == 3 and 'Tavolo 2' in reason, reason)
+    page.locator('main .grid > div', has_text='Tavolo 2').locator('button:has-text("Elimina")').click()
+    pin_action(page, PIN)
+    check('elimina credito: con il PIN giusto viene cancellato', len(ls(page, 'cassa_creditTabs')) == 2)
 
     # ---------- v4: file di configurazione ----------
     open_closure(page)
@@ -325,6 +346,94 @@ with sync_playwright() as p:
     page.wait_for_timeout(300)
     check('una configurazione importata come backup viene rifiutata',
           any('Carica configurazione' in d for d in page.dialogs) and ls(page, 'cassa_pinHash') is None)
+    page.context.close()
+
+    # ---------- v4.2: Tavolo Generico, descrizione extra, elimina conto con PIN ----------
+    page = open_page(browser)
+    page.click('button:has-text("COCA COLA")')
+    check('al Banco senza soci la voce va al Tavolo Generico', ls_cart_label(page) == 'Tavolo Generico', ls_cart_label(page))
+    seat(page, 'Tavolo 3', ['Andrea'])
+    add(page, 'Andrea', 'DREHER 66 cl')
+    page.click('main button:has-text("📌 Tavolo Generico")')
+    page.click('button:has-text("PATATINE")')
+    page.fill('[data-testid="descrizione-extra"]', 'gelato')
+    page.click('button:text-is("€ 1.00")')
+    cart = page.inner_text('#comanda')
+    check('battuta extra con descrizione (GELATO) al Tavolo Generico', 'GELATO' in cart and cart.count('Tavolo Generico') >= 2, cart[:200].replace('\n', ' '))
+    check('la descrizione si svuota dopo la battuta', page.input_value('[data-testid="descrizione-extra"]') == '')
+    page.click('button:text-is("€ 0.50")')
+    check('senza descrizione resta EXTRA', 'EXTRA' in page.inner_text('#comanda'))
+    page.click('button:has-text("INCASSA"):visible >> nth=-1')
+    opts = page.locator('[data-testid="preset-incasso"] option').all_inner_texts()
+    check('incasso: nessuna "quota" per il Tavolo Generico', not any('Generico' in o for o in opts), ' | '.join(opts))
+    page.select_option('[data-testid="preset-incasso"]', 'Andrea')
+    check('quota di Andrea senza le voci del tavolo (€ 2.00)', due(page) == '2.00', due(page))
+    page.locator('.fixed button:has-text("×")').click()
+    page.click('button:has-text("SALVA CONTO")')
+    nav(page, 'CONTI APERTI')
+    page.locator('main .grid > div', has_text='Tavolo 3').locator('button:has-text("Elimina")').click()
+    reason = pin_action(page, WRONG)
+    check('elimina conto aperto: chiede il PIN e con PIN errato resta',
+          len(ls(page, 'cassa_openTabs')) == 1 and 'Tavolo 3' in reason, reason)
+    page.locator('main .grid > div', has_text='Tavolo 3').locator('button:has-text("Elimina")').click()
+    pin_action(page, PIN)
+    check('elimina conto aperto: con il PIN giusto viene cancellato', ls(page, 'cassa_openTabs') == [])
+    check('nessun errore JavaScript (v4.2 cassa)', not page.errors, '; '.join(page.errors[:3]))
+    page.context.close()
+
+    # ---------- v4.2: chiusura che archivia le vendite, report stampabile ----------
+    page = open_page(browser)
+    page.evaluate('() => { window.__stampe = 0; window.print = () => { window.__stampe++; }; }')
+    for prod in ('DREHER 66 cl', 'COCA COLA'):
+        page.click(f'button:has-text("{prod}")')
+        page.click('button:has-text("INCASSA"):visible >> nth=-1')
+        page.click('button:has-text("CONFERMA INCASSO")')
+    nav(page, 'STORICO')
+    page.click('[data-testid="stampa-serata"]')
+    page.wait_for_timeout(200)
+    rep_txt = page.evaluate("document.getElementById('report-stampa')?.innerText || ''")
+    check('report della serata: stampa avviata con vendite e totale',
+          page.evaluate('window.__stampe') == 1 and 'COCA COLA' in rep_txt and '3.50' in rep_txt, rep_txt[:150].replace('\n', ' '))
+    check('il report non si vede sullo schermo', not page.locator('#report-stampa').is_visible())
+    check('nessun "Azzera storico" nella scheda Storico', page.locator('text=/azzera storico/i').count() == 0)
+    open_closure(page)
+    page.fill('input[placeholder="Nuovo fondo..."]', '50')
+    page.click('button:has-text("Imposta")')
+    page.click('button:has-text("CONFERMA ED REGISTRA")')
+    closures = ls(page, 'cassa_dailyClosuresHistory')
+    sales = closures[0].get('sales', [])
+    check('chiusura: le vendite sono archiviate nella chiusura, in ordine',
+          len(sales) == 2 and sales[0]['items'][0]['name'] == 'DREHER 66 cl' and 'color' not in sales[0]['items'][0], json.dumps(sales)[:150])
+    check('chiusura: lo storico si svuota', ls(page, 'cassa_salesHistory') == [])
+    check('dopo la chiusura il totale di oggi riparte da 0 (nessun doppio conteggio)',
+          '€ 0.00' in page.inner_text('text=Totale Incassato Oggi >> xpath=..'))
+    page.click('button:has-text("CONFERMA ED REGISTRA")')
+    second = ls(page, 'cassa_dailyClosuresHistory')[0]
+    check('seconda chiusura senza vendite: incasso 0 e fondo invariato',
+          second['totalSales'] == 0 and abs(second['newInitialFundForNextDay'] - 50) < 1e-9, f"{second['totalSales']} {second['newInitialFundForNextDay']}")
+    page.locator('[data-testid="stampa-chiusura"]').nth(1).click()
+    page.wait_for_timeout(200)
+    rep_txt = page.evaluate("document.getElementById('report-stampa')?.innerText || ''")
+    check('report di una chiusura archiviata: totali e vendite',
+          'Consegnato al presidente' in rep_txt and 'DREHER 66 cl' in rep_txt and '3.50' in rep_txt, rep_txt[:200].replace('\n', ' '))
+    page.dialogs.clear()
+    page.locator('main button:text-is("Elimina")').first.click()
+    check("eliminare una chiusura dall'archivio chiede conferma",
+          len(ls(page, 'cassa_dailyClosuresHistory')) == 1 and any('Si perdono anche le vendite' in d for d in page.dialogs))
+    page.context.close()
+
+    page = open_page(browser)
+    page.evaluate('() => { window.print = () => {}; }')
+    open_closure(page)
+    old_closure = {'id': 1, 'date': '01/11/2026', 'time': '23:30', 'cashierName': 'Op', 'initialFund': 50, 'totalSales': 20,
+                   'presidentAmount': 20, 'reasonNotes': 'Consegna', 'newInitialFundForNextDay': 50}
+    page.set_input_files('[data-testid="importa-backup"]', write_json('backup_v41.json', {'dailyClosuresHistory': [old_closure]}))
+    page.wait_for_timeout(300)
+    page.click('[data-testid="stampa-chiusura"]')
+    page.wait_for_timeout(200)
+    rep_txt = page.evaluate("document.getElementById('report-stampa')?.innerText || ''")
+    check('report di una chiusura vecchia (senza vendite): solo totali', 'Dettaglio non disponibile' in rep_txt and '20.00' in rep_txt, rep_txt[:150].replace('\n', ' '))
+    check('nessun errore JavaScript (v4.2 chiusura)', not page.errors, '; '.join(page.errors[:3]))
     page.context.close()
 
     # ---------- Responsive ----------

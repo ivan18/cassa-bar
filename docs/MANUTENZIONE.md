@@ -45,7 +45,8 @@ Il secondo argomento è il PIN usato nella build. Il test verifica:
 - file di configurazione: rifiuto dei file non validi senza modifiche, soci aggiunti senza doppioni, PIN del file attivo e non salvato in chiaro;
 - backup: esportazione con crediti e hash del PIN, reimportazione su un dispositivo nuovo, import di un backup vecchio (fondo a 0, PIN invariato);
 - nessuno sforamento orizzontale a 360 / 375 / 768 / 1024 / 1280 px, anche su Crediti, finestra di incasso e Chiusura cassa;
-- le 7 schede tutte dentro lo schermo e la finestra di modifica dell'intestazione (Annulla scarta, Salva applica) a ogni larghezza.
+- le 7 schede tutte dentro lo schermo e la finestra di modifica dell'intestazione (Annulla scarta, Salva applica) a ogni larghezza;
+- v4.2: Tavolo Generico (anche escluso dalle quote socio), descrizione della battuta extra, PIN su Elimina conto ed Elimina credito, vendite archiviate nella chiusura senza doppio conteggio, report stampabile della serata e delle chiusure (la stampa è simulata).
 
 Esce con codice 1 se qualcosa fallisce. Per controllare anche il file pubblicato: `python3 tests/test_cassa.py index.html 1234`.
 
