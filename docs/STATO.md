@@ -18,7 +18,8 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
 ### Subito
 - ☑ Merge della PR #1 (v3) su `main`.
-- ☐ Aggiornare il dispositivo del bar alla v4: Esporta backup, ricaricare il sito, Carica configurazione (`config/config-cassa.json` del Progetto Claude), eliminare i soci di esempio, Esporta backup.
+- ☐ Verificare che GitHub Pages abbia pubblicato la v4.1 (alle 21:30 la pubblicazione era ancora in coda su Actions): cliccando sul nome dell'associazione deve aprirsi la finestra "Modifica nomi".
+- ☐ Aggiornare il dispositivo del bar alla v4.1: Esporta backup, ricaricare il sito, Carica configurazione (`config/config-cassa.json` del Progetto Claude), eliminare i soci di esempio, Esporta backup.
 - ☑ Tag `v3` su `23eb5c2` (creato come release da GitHub via browser: dalle sessioni Claude il push dei tag è bloccato).
 - ☑ Merge della PR #2 (v4) e tag `v4`.
 
@@ -29,7 +30,7 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 - ☑ 5.3 JSON di configurazione con i 24 soci reali e PIN provvisorio `1234`: nel Progetto Claude in `config/config-cassa.json` (istruzioni in `config/LEGGIMI.md`), **non nel repo**. Verificato che la v4 lo carica.
 - ☐ Scegliere il PIN definitivo (oggi `1234`, pubblico) e aggiornare il file di configurazione.
 - ☐ 5.5 Migrazione sul dispositivo del bar (vedi "Subito").
-- ☐ v4.1 quando decise D3 e D4.
+- ☐ v4.2 quando decise D3 e D4.
 
 ### Manutenzione (non urgenti)
 - ☐ Valutare una GitHub Action che esegua build + test a ogni PR (oggi si lanciano a mano).
@@ -58,7 +59,7 @@ Formato del file: vedi [config.esempio.json](config.esempio.json) e il [piano v4
 
 Una riga per sessione, la più recente in alto: cosa è stato fatto e cosa è rimasto a metà.
 
-- **2026-11-11 (notte, 3)** — v4.1 responsive: modifica dell'intestazione in una finestra (su richiesta dell'utente, prima sforava su telefono), barra delle 7 schede sempre visibile (griglia su telefono, etichette brevi su tablet), select della comanda, nomi soci, piccoli a capo; fix della build sulle icone in elenco. Test estesi (83 controlli). Merge della PR #3, tag `v4.1`.
+- **2026-11-11 (notte, 3)** — v4.1 responsive: modifica dell'intestazione in una finestra (su richiesta dell'utente, prima sforava su telefono), barra delle 7 schede sempre visibile (griglia su telefono, etichette brevi su tablet), select della comanda, nomi soci, piccoli a capo; fix della build sulle icone in elenco. Test estesi (83 controlli). Merge della PR #3, tag `v4.1`. Allineati i documenti del Progetto Claude (`claude/*.md`) a quelli del repo.
 
 - **2026-11-11 (notte, 2)** — Creato il JSON di configurazione (24 soci reali, PIN provvisorio 1234) nel Progetto Claude, `config/config-cassa.json`; provato nella v4. Merge della PR #2: v4 pubblicata, tag `v4`.
 - **2026-11-11 (notte)** — Merge PR #1: v3 pubblicata, tag/release `v3` creato via browser. Implementata la v4 sul branch `feat/v4-crediti`: crediti, incasso per quantità, conti ordinati, fondo manuale, configurazione JSON (soci + PIN), filtro A–Z, backup con crediti e PIN, fix fondo 0. Test e2e estesi (tutti superati, anche con PIN diverso). Esclusi in attesa di decisione: Tavolo Generico (D4), PIN su Elimina credito (D3).

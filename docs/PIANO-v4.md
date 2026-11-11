@@ -73,7 +73,7 @@ Esempio completo: [config.esempio.json](config.esempio.json) (nomi inventati; il
 - ◐ 2.8 **EXTRA in modalità TUTTI**: mantenuto (invariato da v3); da riverificare quando si fa Tavolo Generico.
 
 ## Fase 3 — Responsive per le parti nuove
-- ☑ 3.1 Barra delle schede con 7 voci: scorrimento su telefono, badge visibili.
+- ☑ 3.1 Barra delle schede con 7 voci, tutte visibili e badge non tagliati (v4.1: griglia su due righe su telefono, una riga con etichette brevi su tablet).
 - ☑ 3.2 Scheda Crediti e finestra di incasso per quantità a 375 / 768 / 1024 px.
 - ☑ 3.3 Filtro A–Z su una riga scorrevole su telefono.
 - ☑ 3.4 Campo del fondo cassa e tasto Carica configurazione su telefono (la riga dei tasti backup non deve sforare).
