@@ -20,7 +20,7 @@ Lo stato aggiornato è in [STATO.md → Decisioni per la v4](STATO.md#decisioni-
 | D2 | Come si imposta il PIN | ☑ Dallo **stesso JSON**: PIN in chiaro nel file, l'app salva solo hash + salt. Senza configurazione vale il PIN della build. Nessuna schermata di cambio PIN. |
 | D3 | Protezione della scheda Crediti | ☐ Aperta. Proposta: consultazione e incasso liberi; **Elimina credito** chiede il PIN, perché equivale a cancellare un debito. |
 | D4 | Voce senza socio | ☐ Aperta. Proposta: come nella versione dell'utente, senza socio selezionato la voce va a "Tavolo Generico". |
-| D5 | Hash + salt del PIN nel backup | ☐ Aperta. Proposta: sì, così Importa backup su un nuovo dispositivo mantiene il PIN (mai in chiaro). |
+| D5 | Hash + salt del PIN nel backup | ☑ **Sì**: export include `pinSalt`/`pinHash` (mai il PIN in chiaro), import li ripristina; un backup senza questi campi lascia invariato il PIN del dispositivo. |
 
 I punti che dipendono da decisioni aperte sono segnati con *(dipende da Dn)*: si possono rimandare senza bloccare il resto.
 
@@ -46,7 +46,7 @@ Esempio completo: [config.esempio.json](config.esempio.json) (nomi inventati; il
 ## Fase 1 — Dati e persistenza
 - ☐ 1.1 Nuovo stato `creditTabs` salvato in `cassa_creditTabs`.
 - ☐ 1.2 PIN del dispositivo: `cassa_pinSalt` + `cassa_pinHash`, scritti dal caricamento della configurazione; se assenti si usano salt e hash della build. La verifica del PIN usa i primi se presenti.
-- ☐ 1.3 Backup: aggiungere `creditTabs` a export e import. I backup vecchi (senza crediti) devono restare importabili. Includere `pinSalt`/`pinHash` *(dipende da D5)*.
+- ☐ 1.3 Backup: aggiungere `creditTabs` a export e import. I backup vecchi (senza crediti) devono restare importabili. Includere `pinSalt`/`pinHash` (D5); se il backup non li ha, il PIN del dispositivo non cambia.
 - ☐ 1.4 Correggere l'import: oggi `if (data.initialFund)` ignora un fondo pari a 0.
 
 ## Fase 2 — Nuove funzionalità
@@ -81,7 +81,7 @@ Esempio completo: [config.esempio.json](config.esempio.json) (nomi inventati; il
 - ☐ 4.2 Apertura dell'incasso con tutto preselezionato (regressione del bug).
 - ☐ 4.3 Chiusura con conti aperti: compaiono i crediti, tavoli liberi, incasso parziale del credito.
 - ☐ 4.4 Configurazione: dopo il caricamento il PIN della build non funziona più e quello del file sì; i soci vengono aggiunti senza duplicati; un file con PIN non valido (lettere, meno di 4 cifre) o con `tipo` sbagliato è rifiutato senza modificare nulla; nel localStorage non c'è il PIN in chiaro.
-- ☐ 4.5 Backup: esporta e reimporta con i crediti; import di un backup vecchio.
+- ☐ 4.5 Backup: esporta e reimporta con i crediti e con il PIN della configurazione (dopo l'import vale lo stesso PIN); import di un backup vecchio senza crediti né PIN; il file esportato non contiene il PIN in chiaro.
 - ☐ 4.6 Elimina credito *(dipende da D3)*.
 - ☐ 4.7 Nessuna richiesta esterna, nessun errore JS, nessuno sforamento a 375 / 768 / 1024 px, anche su Crediti e incasso.
 
