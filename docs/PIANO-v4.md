@@ -20,8 +20,8 @@ Lo stato aggiornato è in [STATO.md → Decisioni per la v4](STATO.md#decisioni-
 |---|-----------|-------|
 | D1 | Anagrafica dei soci reali | ☑ **JSON di configurazione** caricato dall'app (dietro PIN); i soci si **aggiungono** a quelli presenti, senza duplicati. Il file non va mai nel repo né nella build. |
 | D2 | Come si imposta il PIN | ☑ Dallo **stesso JSON**: PIN in chiaro nel file, l'app salva solo hash + salt. Senza configurazione vale il PIN della build. Nessuna schermata di cambio PIN. |
-| D3 | Protezione della scheda Crediti | ☐ Aperta. Proposta: consultazione e incasso liberi; **Elimina credito** chiede il PIN, perché equivale a cancellare un debito. |
-| D4 | Voce senza socio | ☐ Aperta. Proposta: come nella versione dell'utente, senza socio selezionato la voce va a "Tavolo Generico". |
+| D3 | Protezione della scheda Crediti | ☑ Consultazione e incasso liberi; **Elimina credito** ed **Elimina conto aperto** chiedono il PIN (v4.2). |
+| D4 | Voce senza socio | ☑ Senza socio selezionato la voce va al "Tavolo Generico" (v4.2). |
 | D5 | Hash + salt del PIN nel backup | ☑ **Sì**: export include `pinSalt`/`pinHash` (mai il PIN in chiaro), import li ripristina; un backup senza questi campi lascia invariato il PIN del dispositivo. |
 
 I punti che dipendono da decisioni aperte sono segnati con *(dipende da Dn)*: si possono rimandare senza bloccare il resto.
@@ -65,12 +65,12 @@ Esempio completo: [config.esempio.json](config.esempio.json) (nomi inventati; il
   - nello storico: nome del socio se paga la sua quota, "Intero Tavolo" se paga tutto, "Parziale" se la selezione è mista, "Credito del gg/mm" per i crediti;
   - un socio esce dal tavolo quando **non ha più voci da pagare**;
   - il tasto CONFERMA resta sempre visibile (come in v3).
-- ☐ 2.3 **Tavolo Generico** *(dipende da D4)*: voci senza socio, selezionabile tra i soci del tavolo e nel menu di assegnazione delle voci.
+- ☑ 2.3 **Tavolo Generico** (D4, v4.2): voci senza socio, selezionabile tra i soci del tavolo e nel menu di assegnazione delle voci.
 - ☑ 2.4 **Conti aperti ordinati per tavolo** (Banco, poi 1–6), ordinando in visualizzazione e non solo al salvataggio.
 - ☑ 2.5 **Fondo cassa manuale** in Chiusura cassa, con campo numerico e tasto **Azzera** (con conferma).
 - ☑ 2.6 **Carica configurazione** (D1, D2) in Chiusura cassa, accanto a Esporta/Importa backup: apre un file JSON, lo valida e applica soci e PIN secondo il [formato](#formato-del-json-di-configurazione). Nessun suggerimento del PIN a schermo.
 - ☑ 2.7 **Filtro alfabetico A–Z** nella scelta dei soci; le lettere senza soci sono disattivate.
-- ◐ 2.8 **EXTRA in modalità TUTTI**: mantenuto (invariato da v3); da riverificare quando si fa Tavolo Generico.
+- ☑ 2.8 **EXTRA in modalità TUTTI**: mantenuto, verificato con il Tavolo Generico.
 
 ## Fase 3 — Responsive per le parti nuove
 - ☑ 3.1 Barra delle schede con 7 voci, tutte visibili e badge non tagliati (v4.1: griglia su due righe su telefono, una riga con etichette brevi su tablet).
@@ -84,7 +84,7 @@ Esempio completo: [config.esempio.json](config.esempio.json) (nomi inventati; il
 - ☑ 4.3 Chiusura con conti aperti: compaiono i crediti, tavoli liberi, incasso parziale del credito.
 - ☑ 4.4 Configurazione: dopo il caricamento il PIN della build non funziona più e quello del file sì; i soci vengono aggiunti senza duplicati; un file con PIN non valido (lettere, meno di 4 cifre) o con `tipo` sbagliato è rifiutato senza modificare nulla; nel localStorage non c'è il PIN in chiaro.
 - ☑ 4.5 Backup: esporta e reimporta con i crediti e con il PIN della configurazione (dopo l'import vale lo stesso PIN); import di un backup vecchio senza crediti né PIN; il file esportato non contiene il PIN in chiaro.
-- ◐ 4.6 Elimina credito: testata la conferma; il controllo del PIN dipende da D3.
+- ☑ 4.6 Elimina credito ed Elimina conto: con PIN errato restano, con il PIN giusto si cancellano (v4.2).
 - ☑ 4.7 Nessuna richiesta esterna, nessun errore JS, nessuno sforamento a 375 / 768 / 1024 px, anche su Crediti e incasso.
 
 Comandi:
@@ -99,3 +99,17 @@ python3 tests/test_cassa.py dist/cassa_smart_bar_pub.html 1234
 - ◐ 5.3 JSON di configurazione con i soci reali e il PIN (D1, D2): pronto nel Progetto Claude (`config/config-cassa.json`, PIN provvisorio `1234`), **fuori dal repo**; da caricare sul dispositivo del bar dopo il rilascio.
 - ☑ 5.4 PR su `main`, merge, tag `v4`.
 - ☐ 5.5 Migrazione sul dispositivo del bar: Esporta backup dalla versione online attuale, aggiornare e reimportare (vedi [MANUTENZIONE.md](MANUTENZIONE.md#aggiornare-il-dispositivo-del-bar)).
+
+## Fase 6 — v4.2
+
+Dalla versione dell'utente "asd_cassa_bar (6)" (Progetto Claude, `versioni/input-2026-11-11-v6/`) e dalle decisioni D3, D4, D6, D7 in [STATO.md](STATO.md#decisioni-per-la-v4). Branch `feat/v4.2`.
+
+- ☑ 6.1 Tavolo Generico (D4): pulsante accanto ai soci, voce nel menu della comanda, esclusa dalle quote socio nell'incasso.
+- ☑ 6.2 Descrizione facoltativa della battuta extra (anche in modalità TUTTI).
+- ☑ 6.3 PIN su Elimina credito ed Elimina conto aperto (D3), con il motivo nella finestra del PIN.
+- ☑ 6.4 Chiusura: vendite archiviate nella chiusura (`sales`, campi ridotti), Storico svuotato; conferma su Elimina chiusura.
+- ☑ 6.5 Report stampabile della serata (Storico) e di ogni chiusura (archivio); chiusure vecchie: solo totali.
+- ☑ 6.5b Alla conferma della chiusura, proposta di stampare il suo report (D7).
+- ☑ 6.6 Scrittura del localStorage protetta: avviso se la memoria è piena.
+- ☑ 6.7 Test e documenti aggiornati.
+- ☐ 6.8 PR, merge, tag `v4.2`, aggiornamento del dispositivo del bar.

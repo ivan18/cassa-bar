@@ -63,7 +63,7 @@ const font = fs.readFileSync('node_modules/@fontsource-variable/inter/files/inte
 const fontCss = `@font-face{font-family:'Inter';font-style:normal;font-display:swap;font-weight:100 900;src:url(data:font/woff2;base64,${font}) format('woff2')}`;
 
 // 6. Stili custom originali (senza @import di Google Fonts)
-const customCss = src.match(/<style>([\s\S]*?)<\/style>/)[1].replace(/@import[^;]+;/, '').trim().replace(/\s+/g, ' ');
+const customCss = src.match(/<style>([\s\S]*?)<\/style>/)[1].replace(/@import url\([^)]*\)[^;]*;/, '').trim().replace(/\s+/g, ' ');
 
 const reactJs = read('node_modules/react/umd/react.production.min.js');
 const reactDomJs = read('node_modules/react-dom/umd/react-dom.production.min.js');

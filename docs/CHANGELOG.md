@@ -2,6 +2,20 @@
 
 Ogni versione pubblicata corrisponde a un tag git (`v3`, `v4`…). Le versioni precedenti a v3 sono descritte qui ma non hanno un tag.
 
+## v4.2 — 2026-11-11 — in preparazione (branch `feat/v4.2`)
+App (rispetto a v4.1; funzioni prese dalla versione dell'utente "asd_cassa_bar (6)" e decisioni D3/D4):
+- **Tavolo Generico** (D4): pulsante accanto ai soci e voce nel menu della comanda; le voci senza socio restano del tavolo, rientrano in "Intero tavolo" e in nessuna quota socio. Al Banco senza soci la voce va al Tavolo Generico (prima a "Socio").
+- **Descrizione della battuta extra**: campo facoltativo, la voce prende quel nome in maiuscolo invece di "EXTRA".
+- **PIN su Elimina** (D3) per crediti e conti aperti; la finestra del PIN dice cosa si sta eliminando.
+- **Chiusura cassa**: archivia nella chiusura le vendite della serata e svuota lo Storico (nessun doppio conteggio fra una chiusura e l'altra). Elimina di una chiusura chiede conferma.
+- **Report stampabile** (Stampa → Salva come PDF): della serata in corso dallo Storico, e di ogni chiusura archiviata. Alla conferma della chiusura l'app propone di stampare subito il suo report (D7). Stampato dalla pagina, senza finestre popup; usa il nome dell'associazione dell'intestazione.
+- Se la memoria del dispositivo è piena l'app lo segnala invece di bloccarsi.
+- Non preso dalla versione dell'utente: "Azzera storico" senza PIN e lo storico che non si svuota alla chiusura (raddoppiava i totali).
+
+Build: corretta la rimozione dell'`@import` dei font, che troncava il CSS personalizzato (scrollbar, `no-scrollbar`, font a 16 px nei campi su telefono, regole di stampa non venivano applicate).
+
+Test: Tavolo Generico, descrizione extra, PIN su Elimina conto/credito, vendite archiviate nella chiusura, seconda chiusura senza doppio conteggio, report della serata e di una chiusura (anche vecchia).
+
 ## v4.1 — 2026-11-11 — pubblicata ([PR #3](https://github.com/ivan18/cassa-bar/pull/3), tag `v4.1`)
 - **Intestazione**: la modifica di nome dell'associazione e nome della cassa si apre in una finestra (Annulla / Salva) invece che nella barra; prima, su telefono, i campi facevano sforare la pagina e il tasto OK finiva fuori schermo.
 - **Barra delle schede**: tutte e 7 sempre visibili. Fino a 768 px griglia su due righe con icona sopra l'etichetta, da 768 px una riga con etichette brevi (CONTI, CHIUSURA), da 1280 px etichette intere; i badge non vengono più tagliati.
@@ -35,6 +49,9 @@ Progetto:
 - Nel repo: sorgente `src/orig.html`, `build.mjs` (scrive direttamente i file di Pages nella root), `package.json`/`package-lock.json` con versioni fissate, test end-to-end `tests/test_cassa.py`.
 - Verificato che la build riproduce identica la v2 pubblicata, a meno della logica del PIN.
 - Documentazione: `README.md`, `docs/` (stato, contesto, piano v4, funzionalità, manutenzione, changelog), `CLAUDE.md`.
+
+## Input utente — 2026-11-11 — versione "asd_cassa_bar (6)" (solo nel Progetto Claude)
+Evoluzione della versione "crediti", sempre basata su v1. Aggiunte: descrizione facoltativa della battuta extra, report incassi e crediti in una nuova finestra da stampare, tasto "Azzera storico" (senza PIN), storico che non si azzera alla chiusura, EXTRA in modalità TUTTI, tavoli liberati alla chiusura (solo se c'erano conti aperti). Integrata nella v4.2 con le correzioni descritte sopra.
 
 ## Input utente — 2026-11-11 — versione "crediti" (solo nel Progetto Claude)
 Nuova versione fornita dall'utente, **basata su v1** (CDN, senza responsive e senza PIN con hash). Non ancora integrata: vedi [PIANO-v4.md](PIANO-v4.md). Non è nel repo perché contiene i nomi reali dei soci.
