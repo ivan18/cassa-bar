@@ -39,7 +39,12 @@ Il secondo argomento è il PIN usato nella build. Il test verifica:
 - nessuna richiesta di rete esterna e nessun errore JavaScript;
 - una comanda (DREHER 66 cl + COCA COLA = € 3,50), incasso con ESATTO e registrazione nello Storico;
 - PIN errato rifiutato, PIN corretto accettato, nessun suggerimento del PIN a schermo e nessuna password in chiaro nel file;
-- nessuno sforamento orizzontale a 375 / 768 / 1024 px.
+- incasso per quantità: preselezione completa, quota socio, riduzione a mano, resto, conto residuo, socio che esce dal tavolo, nomi nello Storico;
+- conti aperti ordinati per tavolo, filtro A–Z, fondo cassa manuale e Azzera;
+- chiusura con conti aperti → crediti, tavoli liberati, incasso parziale ed eliminazione di un credito;
+- file di configurazione: rifiuto dei file non validi senza modifiche, soci aggiunti senza doppioni, PIN del file attivo e non salvato in chiaro;
+- backup: esportazione con crediti e hash del PIN, reimportazione su un dispositivo nuovo, import di un backup vecchio (fondo a 0, PIN invariato);
+- nessuno sforamento orizzontale a 375 / 768 / 1024 px, anche su Crediti, finestra di incasso e Chiusura cassa.
 
 Esce con codice 1 se qualcosa fallisce. Per controllare anche il file pubblicato: `python3 tests/test_cassa.py index.html 1234`.
 
@@ -58,7 +63,7 @@ Il service worker cambia nome di cache a ogni build: i dispositivi scaricano la 
 1. `CASSA_PIN=<nuovo> npm run build` e test con il nuovo PIN.
 2. Rilascio come sopra. Comunicare il nuovo PIN a chi gestisce la cassa (mai scriverlo nel repo, nelle issue o nei commit).
 
-Il PIN di oggi vale per tutte e tre le aree protette. Dalla v4 il PIN si potrà impostare anche caricando il JSON di configurazione dall'app (decisione D2): quello della build resterà il PIN iniziale, valido finché non si carica una configurazione.
+Il PIN vale per tutte le aree protette. Dalla v4 il modo consigliato è il **file di configurazione** (Chiusura cassa → Carica configurazione, vedi [config.esempio.json](config.esempio.json)): non richiede una nuova build e il PIN non finisce nel codice pubblico. Il PIN della build resta quello iniziale, valido finché sul dispositivo non si carica una configurazione o un backup che ne contiene uno.
 
 ## Aggiornare il dispositivo del bar
 

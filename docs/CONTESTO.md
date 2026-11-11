@@ -44,11 +44,13 @@ src/orig.html ──build.mjs──▶ index.html (+ sw.js, manifest.webmanifest
 | `cassa_tableMembersMap` | `{ "Tavolo 1": ["Marco", …] }` soci seduti |
 | `cassa_openTabs` | conti aperti `[{id, table, items, total, time, members}]` |
 | `cassa_salesHistory` | vendite dall'ultima chiusura `[{id, time, table, customerName, items, total}]` |
-| `cassa_dailyClosuresHistory` | chiusure registrate |
+| `cassa_creditTabs` | crediti `[{creditId, closureDate, table, items, total, time, members}]` (v4) |
+| `cassa_dailyClosuresHistory` | chiusure registrate (da v4 con `creditsCreated`) |
+| `cassa_pinSalt`, `cassa_pinHash` | PIN del dispositivo (da configurazione o backup, v4); se mancano vale quello della build |
 | `cassa_initialFund` | fondo cassa |
 | `cassa_clubName`, `cassa_registerName` | intestazione |
 
-Ogni voce di comanda: `{...prodotto, cartItemId, qty, assignedCustomer}`. Il backup JSON contiene le stesse informazioni con nomi senza prefisso (`products`, `customerList`, …).
+Ogni voce di comanda: `{...prodotto, cartItemId, qty, assignedCustomer}`. Il backup JSON contiene le stesse informazioni con nomi senza prefisso (`products`, `customerList`, `creditTabs`, `pinSalt`, `pinHash`, …). Il file di configurazione è diverso: `{tipo: "cassa-bar-config", versione: 1, soci?, pin?}`.
 
 ## Decisioni prese
 
@@ -73,5 +75,5 @@ Ogni voce di comanda: `{...prodotto, cartItemId, qty, assignedCustomer}`. Il bac
 - **Quota socio**: le voci assegnate a un socio, incassabili separatamente.
 - **Modalità TUTTI**: un tocco su un prodotto ne aggiunge uno a ogni socio seduto.
 - **Fondo cassa**: contante iniziale; alla chiusura diventa `fondo + incasso − consegnato al presidente`.
-- **JSON di configurazione** (v4, non ancora fatto): file privato con soci e PIN, caricato dall'app.
-- **Credito** (v4, non ancora fatto): conto rimasto aperto alla chiusura, da incassare nei giorni seguenti.
+- **JSON di configurazione** (v4): file privato con soci e PIN, caricato dall'app.
+- **Credito** (v4): conto rimasto aperto alla chiusura, da incassare nei giorni seguenti.

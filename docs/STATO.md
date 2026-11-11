@@ -8,26 +8,28 @@ Ultimo aggiornamento: **2026-11-11**
 
 | | |
 |---|---|
-| Pubblicato su Pages | **v2** (PIN in chiaro `1234`/`admin`/`pub`, suggerito a schermo) |
-| In revisione | **v3**: PIN con hash, sorgente/build/test/documenti nel repo ([PR #1](https://github.com/ivan18/cassa-bar/pull/1)) |
-| Prossima versione | **v4** — crediti e altre funzioni dalla versione fornita dall'utente, vedi [PIANO-v4.md](PIANO-v4.md) |
-| PIN della build in revisione | `1234` (scelta dell'utente: invariato per ora) |
+| Pubblicato su Pages | **v3** (PIN con hash; merge della [PR #1](https://github.com/ivan18/cassa-bar/pull/1), commit `23eb5c2`) |
+| In revisione | **v4** — crediti, incasso per quantità, configurazione, ecc. (branch `feat/v4-crediti`, PR da aprire/aperta: vedi sotto) |
+| PIN della build | `1234` (il PIN vero si imposterà con il JSON di configurazione) |
 
 ## Task
 
 Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
 ### Subito
-- ☐ **Merge della [PR #1](https://github.com/ivan18/cassa-bar/pull/1)** (v3) su `main` → Pages si aggiorna in circa un minuto. Poi verificare dal telefono del bar che il PIN funzioni e che non compaia più "1234".
-- ☐ Dopo il merge: creare il tag `v3` su `main` (`git tag v3 && git push origin v3`).
-- ☐ Decidere se cambiare il PIN (oggi `1234`) prima della v4 con una nuova build ([MANUTENZIONE.md](MANUTENZIONE.md#cambiare-il-pin)), oppure aspettare la v4 e impostarlo dal JSON di configurazione. Consigliate almeno 6 cifre.
+- ☑ Merge della PR #1 (v3) su `main`.
+- ☐ Verificare dal telefono del bar che il PIN funzioni e che non compaia più "1234".
+- ☐ Creare il tag `v3` su `23eb5c2` (da GitHub → Releases, o `git tag v3 23eb5c2 && git push origin v3`): dalle sessioni Claude il push dei tag è bloccato.
+- ☐ Provare la v4 (PR) e decidere se fare il merge prima o dopo D3/D4.
 
 ### v4 (vedi il piano completo)
-- ◐ Fase 0: D1 e D2 decise (JSON di configurazione); restano aperte D3 e D4 (sotto); D5 decisa. Si può partire con le parti che non dipendono da queste.
-- ☐ Fasi 1–5 del [piano v4](PIANO-v4.md).
+- ◐ Fase 0: decise D1, D2, D5; aperte D3 e D4 (sotto).
+- ☑ Fasi 1–4 per tutto ciò che non dipende da D3/D4 (dettaglio spuntato nel [piano v4](PIANO-v4.md)).
+- ☐ 2.3 Tavolo Generico (D4) e PIN su Elimina credito (D3), quando decise.
+- ☐ 5.3 Preparare il JSON di configurazione con i soci reali e il PIN, fuori dal repo.
+- ☐ 5.5 Migrazione sul dispositivo del bar: Esporta backup, aggiornare, Carica configurazione.
 
 ### Manutenzione (non urgenti)
-- ☐ Correggere l'import del backup che ignora un fondo cassa pari a 0 (`if (data.initialFund)`): è già nel piano v4 (1.4).
 - ☐ Valutare una GitHub Action che esegua build + test a ogni PR (oggi si lanciano a mano).
 - ☐ Limiti noti in [FUNZIONALITA.md](FUNZIONALITA.md#limiti-e-comportamenti-da-tenere-presenti): decidere quali correggere (colore dei nuovi prodotti, socio eliminato che resta seduto, Storico senza PIN).
 
@@ -47,12 +49,14 @@ Formato del file: vedi [config.esempio.json](config.esempio.json) e il [piano v4
 
 | # | Domanda | Proposta (non decisa) |
 |---|---------|-----------------------|
-| D3 | Protezione della scheda Crediti | Consultazione e incasso liberi; "Elimina credito" chiede il PIN |
-| D4 | Voce senza socio | Va a "Tavolo Generico" |
+| D3 | Protezione della scheda Crediti | Consultazione e incasso liberi; "Elimina credito" chiede il PIN. **Oggi in v4: chiede solo conferma.** |
+| D4 | Voce senza socio | Va a "Tavolo Generico". **Oggi in v4: comportamento v3, la voce va a "Socio".** |
 
 ## Registro sessioni
 
 Una riga per sessione, la più recente in alto: cosa è stato fatto e cosa è rimasto a metà.
+
+- **2026-11-11 (notte)** — Merge PR #1: v3 pubblicata (tag `v3` da creare a mano). Implementata la v4 sul branch `feat/v4-crediti`: crediti, incasso per quantità, conti ordinati, fondo manuale, configurazione JSON (soci + PIN), filtro A–Z, backup con crediti e PIN, fix fondo 0. Test e2e estesi (tutti superati, anche con PIN diverso). Esclusi in attesa di decisione: Tavolo Generico (D4), PIN su Elimina credito (D3).
 
 - **2026-11-11 (sera)** — Decise D1 e D2: soci e PIN da un JSON di configurazione caricato dall'app (file privato, PIN in chiaro nel file e salvato come hash, soci aggiunti senza duplicati). D3 e D4 restano aperte. Decisa D5: hash + salt del PIN inclusi nel backup. Aggiornati piano v4 e aggiunto `docs/config.esempio.json`.
 

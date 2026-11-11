@@ -1,17 +1,17 @@
 # Cassa Smart Bar & Pub
 
-App di cassa (POS) per il bar di un'associazione: tavoli, soci al tavolo, comande, incasso in contanti con resto, conti aperti, chiusura cassa con consegna al presidente, backup dei dati.
+App di cassa (POS) per il bar di un'associazione: tavoli, soci al tavolo, comande, incasso in contanti con resto (anche parziale, per quantità), conti aperti, crediti, chiusura cassa con consegna al presidente, backup dei dati.
 
 **Sito:** https://ivan18.github.io/cassa-bar/
 
 - Un solo file HTML, funziona **offline** e si installa come app (PWA) su telefono, tablet e PC.
 - Nessun server: i dati restano nel browser del dispositivo (`localStorage`, chiavi `cassa_*`). Per spostarli si usa **Esporta / Importa backup** in Chiusura cassa.
-- Chiusura cassa, Prodotti e Soci sono protetti da un PIN numerico.
+- Chiusura cassa, Prodotti e Soci sono protetti da un PIN numerico, impostabile con il file di configurazione.
 
 ## Per chi lo usa al bar
 
 1. Aprire il sito con Chrome o Safari e scegliere "Aggiungi a schermata Home" / "Installa app".
-2. Alla prima apertura si parte con listino e soci di esempio: caricare i dati veri con **Importa backup**.
+2. Alla prima apertura si parte con listino e soci di esempio. Per i soci reali e il PIN usare **Chiusura cassa → Carica configurazione** con un file JSON privato (modello: [docs/config.esempio.json](docs/config.esempio.json)); per spostare tutti i dati da un altro dispositivo usare **Importa backup**.
 3. Prima di cambiare dispositivo o browser fare sempre **Esporta backup**.
 
 L'elenco completo delle funzioni è in [docs/FUNZIONALITA.md](docs/FUNZIONALITA.md).

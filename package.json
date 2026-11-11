@@ -1,6 +1,6 @@
 {
   "name": "cassa-bar",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "private": true,
   "description": "Cassa Smart Bar & Pub: app POS offline (PWA) per il bar di un'associazione",
   "type": "module",
