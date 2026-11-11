@@ -1,0 +1,7 @@
+node_modules/
+build/
+dist/
+__pycache__/
+*.json.bak
+# Backup dei dati del bar: contengono nomi dei soci, non vanno nel repo pubblico
+backup_cassa_*.json
