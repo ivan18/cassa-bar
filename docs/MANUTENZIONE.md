@@ -83,6 +83,7 @@ I file di backup contengono i nomi dei soci: non vanno caricati nel repo (sono g
 | "Verifica PIN non supportata da questo browser" | `crypto.subtle` richiede HTTPS o `file://`. Usare il sito su `https://` o il file locale, non un indirizzo `http://`. |
 | La build si ferma con "Icona lucide mancante" | Nome icona sbagliato in `<Icon name="…">`: va usato il nome esatto di Lucide 0.460. |
 | La build si ferma con "Componente Icon non trovato" | È cambiata l'indentazione della funzione `Icon` in `src/orig.html`: la build la cerca con una regex (`build.mjs`, passo 2). |
+| La pubblicazione su Pages resta in "Queued" su Actions | Problema di GitHub (verificare githubstatus.com e Billing). Annullare l'esecuzione bloccata e rilanciarla; se non si sblocca, un nuovo merge su `main` fa partire una pubblicazione nuova; se persiste, supporto GitHub con il request ID dell'errore. |
 | Dati spariti dopo aver cambiato browser o indirizzo | `localStorage` è legato a browser e dominio: usare Esporta/Importa backup. |
 
 ## Aggiornare le dipendenze
