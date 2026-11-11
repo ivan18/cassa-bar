@@ -5,3 +5,6 @@ __pycache__/
 *.json.bak
 # Backup dei dati del bar: contengono nomi dei soci, non vanno nel repo pubblico
 backup_cassa_*.json
+# Configurazione con soci reali e PIN in chiaro (v4): resta sul dispositivo, mai nel repo
+config*.json
+!docs/config.esempio.json

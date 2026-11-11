@@ -58,7 +58,7 @@ Il service worker cambia nome di cache a ogni build: i dispositivi scaricano la 
 1. `CASSA_PIN=<nuovo> npm run build` e test con il nuovo PIN.
 2. Rilascio come sopra. Comunicare il nuovo PIN a chi gestisce la cassa (mai scriverlo nel repo, nelle issue o nei commit).
 
-Il PIN di oggi vale per tutte e tre le aree protette. Con la v4 è previsto il cambio PIN dall'app (decisione D2).
+Il PIN di oggi vale per tutte e tre le aree protette. Dalla v4 il PIN si potrà impostare anche caricando il JSON di configurazione dall'app (decisione D2): quello della build resterà il PIN iniziale, valido finché non si carica una configurazione.
 
 ## Aggiornare il dispositivo del bar
 

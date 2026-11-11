@@ -60,6 +60,7 @@ Ogni voce di comanda: `{...prodotto, cartItemId, qty, assignedCustomer}`. Il bac
 | 2026-11-11 | Sorgente, build, test e documenti spostati nel repo (prima erano solo nel Progetto Claude) | Manutenzione e ripresa del contesto da qualunque sessione |
 | 2026-11-11 | Le versioni si identificano con i tag git (`v3`, `v4`…) invece delle cartelle `versioni/` | Evita copie duplicate del sorgente |
 | 2026-11-11 | Pubblicazione tramite pull request su `main` | Revisione prima che la modifica arrivi al bar |
+| 2026-11-11 | v4: soci reali e PIN da un JSON di configurazione caricato dall'app (D1, D2) | Il sito e il repo sono pubblici: nomi e PIN devono restare in un file privato sul dispositivo |
 
 ## Dove si trovano le cose
 
@@ -72,4 +73,5 @@ Ogni voce di comanda: `{...prodotto, cartItemId, qty, assignedCustomer}`. Il bac
 - **Quota socio**: le voci assegnate a un socio, incassabili separatamente.
 - **Modalità TUTTI**: un tocco su un prodotto ne aggiunge uno a ogni socio seduto.
 - **Fondo cassa**: contante iniziale; alla chiusura diventa `fondo + incasso − consegnato al presidente`.
+- **JSON di configurazione** (v4, non ancora fatto): file privato con soci e PIN, caricato dall'app.
 - **Credito** (v4, non ancora fatto): conto rimasto aperto alla chiusura, da incassare nei giorni seguenti.
