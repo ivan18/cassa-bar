@@ -8,7 +8,7 @@ Lavorare su un branch (`feat/v4-crediti`) e pubblicare con una PR. Aggiornare qu
 
 Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
-**Avanzamento (2026-11-11):** implementato tutto ciò che non dipende da D3/D4, sul branch `feat/v4-crediti` (PR aperta). Restano: 2.3 Tavolo Generico (D4), protezione di Elimina credito (D3, oggi solo conferma), 5.3 e 5.5.
+**Avanzamento (2026-11-11):** implementato tutto ciò che non dipende da D3/D4, sul branch `feat/v4-crediti` ([PR #2](https://github.com/ivan18/cassa-bar/pull/2)). Restano: 2.3 Tavolo Generico (D4), protezione di Elimina credito (D3, oggi solo conferma), 5.3 e 5.5.
 
 ---
 

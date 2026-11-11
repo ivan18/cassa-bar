@@ -9,7 +9,7 @@ Ultimo aggiornamento: **2026-11-11**
 | | |
 |---|---|
 | Pubblicato su Pages | **v3** (PIN con hash; merge della [PR #1](https://github.com/ivan18/cassa-bar/pull/1), commit `23eb5c2`) |
-| In revisione | **v4** — crediti, incasso per quantità, configurazione, ecc. (branch `feat/v4-crediti`, PR da aprire/aperta: vedi sotto) |
+| In revisione | **v4** — crediti, incasso per quantità, configurazione, ecc. ([PR #2](https://github.com/ivan18/cassa-bar/pull/2)) |
 | PIN della build | `1234` (il PIN vero si imposterà con il JSON di configurazione) |
 
 ## Task
@@ -20,7 +20,7 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 - ☑ Merge della PR #1 (v3) su `main`.
 - ☐ Verificare dal telefono del bar che il PIN funzioni e che non compaia più "1234".
 - ☐ Creare il tag `v3` su `23eb5c2` (da GitHub → Releases, o `git tag v3 23eb5c2 && git push origin v3`): dalle sessioni Claude il push dei tag è bloccato.
-- ☐ Provare la v4 (PR) e decidere se fare il merge prima o dopo D3/D4.
+- ☐ Provare la v4 ([PR #2](https://github.com/ivan18/cassa-bar/pull/2)) e decidere se fare il merge prima o dopo D3/D4.
 
 ### v4 (vedi il piano completo)
 - ◐ Fase 0: decise D1, D2, D5; aperte D3 e D4 (sotto).
