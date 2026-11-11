@@ -33,7 +33,7 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 - ☐ Scegliere il PIN definitivo (oggi `1234`, pubblico) e aggiornare il file di configurazione.
 - ☐ 5.5 Migrazione sul dispositivo del bar (vedi "Subito").
 - ◐ v4.2 (vedi [piano, fase 6](PIANO-v4.md#fase-6--v42)): implementata e testata, da pubblicare.
-- ☐ Report con la chiusura cassa: decidere D7 (sotto), poi implementare.
+- ☑ Report alla chiusura cassa (D7): nella v4.2.
 
 ### Manutenzione (non urgenti)
 - ☐ Valutare una GitHub Action che esegua build + test a ogni PR (oggi si lanciano a mano).
@@ -51,19 +51,20 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 | D3 | Protezione dei crediti | Consultazione e incasso liberi; **Elimina credito** chiede il PIN, e per coerenza anche **Elimina conto aperto** (deciso il 2026-11-11 sera, v4.2). Regola: ciò che cancella soldi già registrati chiede il PIN. |
 | D4 | Voce senza socio | Va al **Tavolo Generico**: resta del tavolo, rientra in "Intero tavolo" e in nessuna quota socio (v4.2). |
 | D6 | Storico e chiusura | La chiusura **archivia le vendite** nella chiusura e svuota lo Storico; niente "Azzera storico". Report stampabile della serata e di ogni chiusura (v4.2). |
+| D7 | Chiusura cassa nel report | Alla conferma della chiusura l'app **propone di stampare subito il report** di quella chiusura (opzione a, decisa il 2026-11-12; v4.2). Restano possibili in futuro: dati della chiusura nel report della serata, riepilogo di più chiusure. |
 | D5 | Hash + salt del PIN nel backup | **Sì**: Esporta backup include `pinSalt`/`pinHash` (mai il PIN in chiaro); Importa backup li ripristina, così su un nuovo dispositivo il PIN resta lo stesso. Un backup senza questi campi lascia invariato il PIN del dispositivo. |
 
 Formato del file: vedi [config.esempio.json](config.esempio.json) e il [piano v4](PIANO-v4.md#formato-del-json-di-configurazione).
 
 ### Aperte
 
-| # | Domanda | Opzioni (non decisa) |
-|---|---------|----------------------|
-| D7 | "Aggiungere la chiusura cassa nel report" (richiesta dell'utente, 2026-11-11) | Il report di ogni chiusura esiste già dalla v4.2 (tasto "Report" nell'archivio). Da chiarire cosa aggiungere: **a)** alla conferma della chiusura proporre subito la stampa del suo report; **b)** nel report della serata (Storico) mostrare anche cassiere, importo al presidente e fondo per domani presi dal modulo di chiusura; **c)** un report riepilogativo di più chiusure (archivio o periodo) con i totali. |
+Nessuna.
 
 ## Registro sessioni
 
 Una riga per sessione, la più recente in alto: cosa è stato fatto e cosa è rimasto a metà.
+
+- **2026-11-12** — Decisa D7 (opzione a): alla conferma della chiusura si propone la stampa del suo report. Aggiunta alla v4.2 (PR #7) con i test; tutti superati.
 
 - **2026-11-11 (notte, 5)** — Analizzata la versione "asd_cassa_bar (6)" dell'utente; decise D3, D4, D6. Implementata la v4.2 sul branch `feat/v4.2` (Tavolo Generico, descrizione extra, PIN su Elimina conto/credito, chiusura che archivia le vendite, report stampabile) e corretto un bug della build che troncava il CSS personalizzato. Test estesi (tutti superati). Da fare: PR, merge, tag.
 

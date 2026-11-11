@@ -102,13 +102,14 @@ python3 tests/test_cassa.py dist/cassa_smart_bar_pub.html 1234
 
 ## Fase 6 — v4.2
 
-Dalla versione dell'utente "asd_cassa_bar (6)" (Progetto Claude, `versioni/input-2026-11-11-v6/`) e dalle decisioni D3, D4, D6 in [STATO.md](STATO.md#decisioni-per-la-v4). Branch `feat/v4.2`.
+Dalla versione dell'utente "asd_cassa_bar (6)" (Progetto Claude, `versioni/input-2026-11-11-v6/`) e dalle decisioni D3, D4, D6, D7 in [STATO.md](STATO.md#decisioni-per-la-v4). Branch `feat/v4.2`.
 
 - ☑ 6.1 Tavolo Generico (D4): pulsante accanto ai soci, voce nel menu della comanda, esclusa dalle quote socio nell'incasso.
 - ☑ 6.2 Descrizione facoltativa della battuta extra (anche in modalità TUTTI).
 - ☑ 6.3 PIN su Elimina credito ed Elimina conto aperto (D3), con il motivo nella finestra del PIN.
 - ☑ 6.4 Chiusura: vendite archiviate nella chiusura (`sales`, campi ridotti), Storico svuotato; conferma su Elimina chiusura.
 - ☑ 6.5 Report stampabile della serata (Storico) e di ogni chiusura (archivio); chiusure vecchie: solo totali.
+- ☑ 6.5b Alla conferma della chiusura, proposta di stampare il suo report (D7).
 - ☑ 6.6 Scrittura del localStorage protetta: avviso se la memoria è piena.
 - ☑ 6.7 Test e documenti aggiornati.
 - ☐ 6.8 PR, merge, tag `v4.2`, aggiornamento del dispositivo del bar.

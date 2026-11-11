@@ -43,6 +43,9 @@ def open_page(browser, w=1280, h=900):
     ctx = browser.new_context(viewport={'width': w, 'height': h}, accept_downloads=True)
     page = ctx.new_page()
     page.external, page.errors, page.dialogs = [], [], []
+    page.dismiss_next = False
+    # La stampa vera bloccherebbe Chrome: si conta soltanto
+    page.add_init_script('window.__stampe = 0; window.print = () => { window.__stampe++; };')
 
     def route(r):
         if r.request.url.startswith(('file:', 'data:', 'blob:')):
@@ -53,7 +56,11 @@ def open_page(browser, w=1280, h=900):
 
     def on_dialog(d):
         page.dialogs.append(d.message)
-        d.accept()
+        if page.dismiss_next:
+            page.dismiss_next = False
+            d.dismiss()
+        else:
+            d.accept()
 
     page.route('**/*', route)
     page.on('pageerror', lambda e: page.errors.append(str(e)))
@@ -383,7 +390,6 @@ with sync_playwright() as p:
 
     # ---------- v4.2: chiusura che archivia le vendite, report stampabile ----------
     page = open_page(browser)
-    page.evaluate('() => { window.__stampe = 0; window.print = () => { window.__stampe++; }; }')
     for prod in ('DREHER 66 cl', 'COCA COLA'):
         page.click(f'button:has-text("{prod}")')
         page.click('button:has-text("INCASSA"):visible >> nth=-1')
@@ -405,10 +411,17 @@ with sync_playwright() as p:
     check('chiusura: le vendite sono archiviate nella chiusura, in ordine',
           len(sales) == 2 and sales[0]['items'][0]['name'] == 'DREHER 66 cl' and 'color' not in sales[0]['items'][0], json.dumps(sales)[:150])
     check('chiusura: lo storico si svuota', ls(page, 'cassa_salesHistory') == [])
+    rep_txt = page.evaluate("document.getElementById('report-stampa')?.innerText || ''")
+    check('alla chiusura si propone la stampa e si apre il report di quella chiusura',
+          any('Vuoi stampare il report' in d for d in page.dialogs) and page.evaluate('window.__stampe') == 2
+          and 'Consegnato al presidente' in rep_txt and 'COCA COLA' in rep_txt, rep_txt[:150].replace('\n', ' '))
     check('dopo la chiusura il totale di oggi riparte da 0 (nessun doppio conteggio)',
           '€ 0.00' in page.inner_text('text=Totale Incassato Oggi >> xpath=..'))
+    page.dismiss_next = True
     page.click('button:has-text("CONFERMA ED REGISTRA")')
     second = ls(page, 'cassa_dailyClosuresHistory')[0]
+    check('rifiutando la stampa la chiusura resta registrata e non si stampa',
+          len(ls(page, 'cassa_dailyClosuresHistory')) == 2 and page.evaluate('window.__stampe') == 2)
     check('seconda chiusura senza vendite: incasso 0 e fondo invariato',
           second['totalSales'] == 0 and abs(second['newInitialFundForNextDay'] - 50) < 1e-9, f"{second['totalSales']} {second['newInitialFundForNextDay']}")
     page.locator('[data-testid="stampa-chiusura"]').nth(1).click()
@@ -423,7 +436,6 @@ with sync_playwright() as p:
     page.context.close()
 
     page = open_page(browser)
-    page.evaluate('() => { window.print = () => {}; }')
     open_closure(page)
     old_closure = {'id': 1, 'date': '01/11/2026', 'time': '23:30', 'cashierName': 'Op', 'initialFund': 50, 'totalSales': 20,
                    'presidentAmount': 20, 'reasonNotes': 'Consegna', 'newInitialFundForNextDay': 50}

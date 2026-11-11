@@ -626,8 +626,11 @@
                 setSalesHistory([]);
                 setClosureForm(prev => ({ ...prev, presidentAmount: '' }));
 
-                alert(`Chiusura Cassa completata!\n\nImporto versato al Presidente: € ${presidentVal.toFixed(2)}\nFondo Cassa per domani aggiornato a: € ${remainingFundForTomorrow.toFixed(2)}` +
-                    (movedCount > 0 ? `\n\n${movedCount} ${movedCount === 1 ? 'conto aperto è passato' : 'conti aperti sono passati'} nei CREDITI.` : ''));
+                // Riepilogo e, se si conferma, stampa subito il report della chiusura (D7)
+                const printNow = confirm(`Chiusura Cassa completata!\n\nImporto versato al Presidente: € ${presidentVal.toFixed(2)}\nFondo Cassa per domani aggiornato a: € ${remainingFundForTomorrow.toFixed(2)}` +
+                    (movedCount > 0 ? `\n\n${movedCount} ${movedCount === 1 ? 'conto aperto è passato' : 'conti aperti sono passati'} nei CREDITI.` : '') +
+                    '\n\nVuoi stampare il report della chiusura?');
+                if (printNow) setReport({ kind: 'chiusura', closure: newClosure });
             };
 
             const handleDeleteClosure = (closure) => {

@@ -8,7 +8,7 @@ App (rispetto a v4.1; funzioni prese dalla versione dell'utente "asd_cassa_bar (
 - **Descrizione della battuta extra**: campo facoltativo, la voce prende quel nome in maiuscolo invece di "EXTRA".
 - **PIN su Elimina** (D3) per crediti e conti aperti; la finestra del PIN dice cosa si sta eliminando.
 - **Chiusura cassa**: archivia nella chiusura le vendite della serata e svuota lo Storico (nessun doppio conteggio fra una chiusura e l'altra). Elimina di una chiusura chiede conferma.
-- **Report stampabile** (Stampa → Salva come PDF): della serata in corso dallo Storico, e di ogni chiusura archiviata. Stampato dalla pagina, senza finestre popup; usa il nome dell'associazione dell'intestazione.
+- **Report stampabile** (Stampa → Salva come PDF): della serata in corso dallo Storico, e di ogni chiusura archiviata. Alla conferma della chiusura l'app propone di stampare subito il suo report (D7). Stampato dalla pagina, senza finestre popup; usa il nome dell'associazione dell'intestazione.
 - Se la memoria del dispositivo è piena l'app lo segnala invece di bloccarsi.
 - Non preso dalla versione dell'utente: "Azzera storico" senza PIN e lo storico che non si svuota alla chiusura (raddoppiava i totali).
 
