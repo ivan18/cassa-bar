@@ -2,7 +2,7 @@
 
 Ogni versione pubblicata corrisponde a un tag git (`v3`, `v4`…). Le versioni precedenti a v3 sono descritte qui ma non hanno un tag.
 
-## v4 — 2026-11-11 — in revisione ([PR #2](https://github.com/ivan18/cassa-bar/pull/2))
+## v4 — 2026-11-11 — pubblicata ([PR #2](https://github.com/ivan18/cassa-bar/pull/2), tag `v4`)
 App (rispetto a v3):
 - Scheda **CREDITI**: alla chiusura cassa i conti aperti diventano crediti (con data), i tavoli si liberano; totale dei sospesi, badge, incasso anche parziale, Elimina con conferma.
 - **Incasso per quantità**: tutto preselezionato all'apertura, preselezioni Intero tavolo / Quota socio, Azzera selezione, +/− per voce; nello storico "Intero Tavolo", nome del socio, "Nome (parziale)", "Parziale" o "Credito del gg/mm"; un socio esce dal tavolo quando non ha più voci da pagare; tasto CONFERMA con l'importo, disattivato se non c'è nulla da incassare.
