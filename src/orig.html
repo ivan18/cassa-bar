@@ -95,7 +95,8 @@
             const [registerName, setRegisterName] = useState(() => {
                 return localStorage.getItem('cassa_registerName') || 'CASSA';
             });
-            const [isEditingHeader, setIsEditingHeader] = useState(false);
+            // Modifica intestazione in una finestra: null = chiusa, altrimenti bozza { club, register }
+            const [headerDraft, setHeaderDraft] = useState(null);
 
             useEffect(() => { localStorage.setItem('cassa_clubName', clubName); }, [clubName]);
             useEffect(() => { localStorage.setItem('cassa_registerName', registerName); }, [registerName]);
@@ -730,100 +731,57 @@
             return (
                 <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-28 lg:pb-10">
                     {/* INTESTAZIONE E BARRA SUPERIORE IN BLU ELETTRICO */}
-                    <header className="bg-blue-600 border-b border-blue-500 px-4 py-3 sticky top-0 z-40 shadow-xl">
-                        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:justify-between md:items-center gap-2 md:gap-3">
-                            <div className="flex items-center gap-3">
-                                <div>
-                                    {isEditingHeader ? (
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="text"
-                                                value={clubName}
-                                                onChange={e => setClubName(e.target.value)}
-                                                className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-xs font-black text-amber-400"
-                                            />
-                                            <input
-                                                type="text"
-                                                value={registerName}
-                                                onChange={e => setRegisterName(e.target.value)}
-                                                className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-xs text-white"
-                                            />
-                                            <button onClick={() => setIsEditingHeader(false)} className="bg-amber-400 text-slate-950 px-2 py-1 rounded font-black text-xs">OK</button>
-                                        </div>
-                                    ) : (
-                                        <div onClick={() => setIsEditingHeader(true)} className="cursor-pointer group">
-                                            <h1 className="font-black text-base text-white group-hover:text-amber-300 flex items-center gap-1.5 uppercase tracking-wide">
-                                                <span>{clubName}</span>
-                                                <Icon name="Edit3" className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100" />
-                                            </h1>
-                                            <p className="text-[11px] text-blue-100 font-bold tracking-wider">{registerName}</p>
-                                        </div>
-                                    )}
-                                </div>
+                    <header className="bg-blue-600 border-b border-blue-500 px-3 sm:px-4 py-2.5 sm:py-3 sticky top-0 z-40 shadow-xl">
+                        <div className="max-w-7xl mx-auto flex flex-col xl:flex-row xl:justify-between xl:items-center gap-2 xl:gap-3">
+                            <div className="min-w-0 xl:flex-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setHeaderDraft({ club: clubName, register: registerName })}
+                                    className="group min-w-0 max-w-full text-left"
+                                    aria-label="Modifica intestazione"
+                                >
+                                    <h1 className="font-black text-sm sm:text-base text-white group-hover:text-amber-300 flex items-center gap-1.5 uppercase tracking-wide min-w-0">
+                                        <span className="truncate">{clubName}</span>
+                                        <Icon name="Edit3" className="w-3.5 h-3.5 shrink-0 opacity-70 group-hover:opacity-100" />
+                                    </h1>
+                                    <p className="text-[11px] text-blue-100 font-bold tracking-wider truncate">{registerName}</p>
+                                </button>
                             </div>
 
-                            {/* NAVIGAZIONE SCHEDE */}
-                            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 px-1 -mx-1 w-full md:w-auto min-w-0">
-                                <button
-                                    onClick={() => setActiveTab('pos')}
-                                    className={`px-3 py-2 rounded-xl font-black text-xs flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap ${activeTab === 'pos' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg scale-105' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
-                                >
-                                    <Icon name="Store" className="w-4 h-4" />
-                                    <span>CASSA</span>
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('open-tabs')}
-                                    className={`px-3 py-2 rounded-xl font-black text-xs flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap relative ${activeTab === 'open-tabs' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg scale-105' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
-                                >
-                                    <Icon name="Bookmark" className="w-4 h-4" />
-                                    <span>CONTI APERTI</span>
-                                    {openTabs.length > 0 && (
-                                        <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black animate-pulse">
-                                            {openTabs.length}
-                                        </span>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('credits')}
-                                    className={`px-3 py-2 rounded-xl font-black text-xs flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap relative ${activeTab === 'credits' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg scale-105' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
-                                >
-                                    <Icon name="CreditCard" className="w-4 h-4" />
-                                    <span>CREDITI</span>
-                                    {creditTabs.length > 0 && (
-                                        <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black">
-                                            {creditTabs.length}
-                                        </span>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => setAuthModal({ open: true, targetTab: 'daily-report', requiredRole: 'admin', passwordInput: '', error: '' })}
-                                    className={`px-3 py-2 rounded-xl font-black text-xs flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap ${activeTab === 'daily-report' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg scale-105' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
-                                >
-                                    <Icon name="Lock" className={`w-3.5 h-3.5 ${activeTab === 'daily-report' ? 'text-slate-950' : 'text-blue-200'}`} />
-                                    <span>CHIUSURA CASSA</span>
-                                </button>
-                                <button
-                                    onClick={() => setAuthModal({ open: true, targetTab: 'products', requiredRole: 'mgmt', passwordInput: '', error: '' })}
-                                    className={`px-3 py-2 rounded-xl font-black text-xs flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap ${activeTab === 'products' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg scale-105' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
-                                >
-                                    <Icon name="Lock" className={`w-3.5 h-3.5 ${activeTab === 'products' ? 'text-slate-950' : 'text-blue-200'}`} />
-                                    <span>PRODOTTI</span>
-                                </button>
-                                <button
-                                    onClick={() => setAuthModal({ open: true, targetTab: 'customers', requiredRole: 'mgmt', passwordInput: '', error: '' })}
-                                    className={`px-3 py-2 rounded-xl font-black text-xs flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap ${activeTab === 'customers' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg scale-105' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
-                                >
-                                    <Icon name="Lock" className={`w-3.5 h-3.5 ${activeTab === 'customers' ? 'text-slate-950' : 'text-blue-200'}`} />
-                                    <span>SOCI</span>
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('history')}
-                                    className={`px-3 py-2 rounded-xl font-black text-xs flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap ${activeTab === 'history' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg scale-105' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
-                                >
-                                    <Icon name="History" className="w-4 h-4" />
-                                    <span>STORICO</span>
-                                </button>
-                            </div>
+                            {/* NAVIGAZIONE SCHEDE: fino a md griglia 4 colonne (icona sopra), da md una riga con etichette brevi, da xl etichette intere */}
+                            <nav className="grid grid-cols-4 md:flex md:flex-nowrap md:items-center gap-1.5 w-full xl:w-auto pt-1">
+                                {[
+                                    { id: 'pos', label: 'CASSA', short: 'CASSA', icon: 'Store' },
+                                    { id: 'open-tabs', label: 'CONTI APERTI', short: 'CONTI', icon: 'Bookmark', badge: openTabs.length, pulse: true },
+                                    { id: 'credits', label: 'CREDITI', short: 'CREDITI', icon: 'CreditCard', badge: creditTabs.length },
+                                    { id: 'daily-report', label: 'CHIUSURA CASSA', short: 'CHIUSURA', icon: 'Lock', locked: true },
+                                    { id: 'products', label: 'PRODOTTI', short: 'PRODOTTI', icon: 'Lock', locked: true },
+                                    { id: 'customers', label: 'SOCI', short: 'SOCI', icon: 'Lock', locked: true },
+                                    { id: 'history', label: 'STORICO', short: 'STORICO', icon: 'History' }
+                                ].map(tab => {
+                                    const isActive = activeTab === tab.id;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            data-tab={tab.id}
+                                            aria-label={tab.badge > 0 ? `${tab.label} (${tab.badge})` : tab.label}
+                                            onClick={() => tab.locked
+                                                ? setAuthModal({ open: true, targetTab: tab.id, requiredRole: 'admin', passwordInput: '', error: '' })
+                                                : setActiveTab(tab.id)}
+                                            className={`relative min-w-0 md:flex-auto xl:flex-none px-1.5 md:px-2.5 xl:px-3 py-1.5 md:py-2 rounded-xl font-black text-[10px] sm:text-[11px] md:text-xs flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1.5 transition whitespace-nowrap ${isActive ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
+                                        >
+                                            <Icon name={tab.icon} className={`w-4 h-4 shrink-0 ${tab.locked && !isActive ? 'text-blue-200' : ''}`} />
+                                            <span className="xl:hidden truncate max-w-full">{tab.short}</span>
+                                            <span className="hidden xl:inline">{tab.label}</span>
+                                            {tab.badge > 0 && (
+                                                <span className={`absolute -top-1.5 -right-1 bg-rose-500 text-white text-[10px] min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center font-black ${tab.pulse ? 'animate-pulse' : ''}`}>
+                                                    {tab.badge}
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </nav>
                         </div>
                     </header>
 
@@ -891,7 +849,7 @@
                                                             setApplyToAllMembers(false);
                                                             setActiveCustomer(m);
                                                         }}
-                                                        className={`px-3 py-2 rounded-xl text-xs font-black transition border truncate shrink-0 max-w-[120px] ${(!applyToAllMembers && activeCustomer === m) ? 'bg-amber-400 text-slate-950 border-white ring-2 ring-amber-400' : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800'}`}
+                                                        className={`px-3 py-2 rounded-xl text-xs font-black transition border truncate shrink-0 max-w-[45vw] sm:max-w-[200px] ${(!applyToAllMembers && activeCustomer === m) ? 'bg-amber-400 text-slate-950 border-white ring-2 ring-amber-400' : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800'}`}
                                                     >
                                                         👤 {m}
                                                     </button>
@@ -941,7 +899,7 @@
                                     </div>
                                 </div>
 
-                                <div id="comanda" className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl p-4 flex flex-col justify-between shadow-2xl space-y-4 scroll-mt-4 lg:sticky lg:top-24 lg:self-start">
+                                <div id="comanda" className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl p-4 flex flex-col justify-between shadow-2xl space-y-4 scroll-mt-4 lg:sticky lg:top-32 xl:top-24 lg:self-start">
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                                             <div>
@@ -976,7 +934,7 @@
                                                             <select
                                                                 value={item.assignedCustomer || 'Socio'}
                                                                 onChange={e => updateItemCustomer(item.cartItemId, e.target.value)}
-                                                                className="bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-300 rounded-lg px-2 py-0.5"
+                                                                className="min-w-0 max-w-[65%] truncate bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-300 rounded-lg px-2 py-0.5"
                                                             >
                                                                 {currentSittingMembers.map(c => (
                                                                     <option key={c} value={c}>{c}</option>
@@ -1070,8 +1028,8 @@
                                     </div>
 
                                     <div className="pt-3 border-t border-slate-800 flex justify-between items-center">
-                                        <span className="text-xs font-bold text-slate-400 font-mono">Totale soci al tavolo: {currentSittingMembers.length}</span>
-                                        <button onClick={() => setIsManageTableMembersOpen(false)} className="bg-amber-500 text-slate-950 font-black text-xs px-6 py-2.5 rounded-2xl shadow">
+                                        <span className="text-xs font-bold text-slate-400">Soci al tavolo: {currentSittingMembers.length}</span>
+                                        <button onClick={() => setIsManageTableMembersOpen(false)} className="shrink-0 bg-amber-500 text-slate-950 font-black text-xs px-5 sm:px-6 py-2.5 rounded-2xl shadow">
                                             CONFERMA E CHIUDI
                                         </button>
                                     </div>
@@ -1277,8 +1235,8 @@
                                     </div>
 
                                     <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center text-xs">
-                                        <span className="text-slate-400 font-bold">Fondo cassa previsto per l'indomani:</span>
-                                        <span className="text-amber-400 font-black text-base">
+                                        <span className="text-slate-400 font-bold min-w-0">Fondo cassa previsto per l'indomani:</span>
+                                        <span className="text-amber-400 font-black text-base whitespace-nowrap shrink-0 pl-2">
                                             € {Math.max(0, (initialFund + totalDailySales) - (parseFloat(closureForm.presidentAmount) || totalDailySales)).toFixed(2)}
                                         </span>
                                     </div>
@@ -1480,6 +1438,52 @@
                                     Incassa
                                 </button>
                             </div>
+                        </div>
+                    )}
+
+                    {/* MODALE MODIFICA INTESTAZIONE */}
+                    {headerDraft && (
+                        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+                            <form
+                                onSubmit={e => {
+                                    e.preventDefault();
+                                    setClubName(headerDraft.club.trim() || clubName);
+                                    setRegisterName(headerDraft.register.trim() || registerName);
+                                    setHeaderDraft(null);
+                                }}
+                                className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full max-h-[96vh] overflow-y-auto p-5 sm:p-6 shadow-2xl space-y-4"
+                            >
+                                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                                    <div>
+                                        <span className="text-[10px] text-amber-400 font-black uppercase tracking-wider block">Intestazione</span>
+                                        <h3 className="font-black text-base text-white uppercase">Modifica nomi</h3>
+                                    </div>
+                                    <button type="button" onClick={() => setHeaderDraft(null)} aria-label="Chiudi" className="text-slate-400 hover:text-white font-black text-lg w-8 h-8 bg-slate-800 rounded-xl flex items-center justify-center">×</button>
+                                </div>
+                                <label className="block space-y-1">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase block">Nome dell'associazione</span>
+                                    <input
+                                        type="text"
+                                        value={headerDraft.club}
+                                        onChange={e => setHeaderDraft(prev => ({ ...prev, club: e.target.value }))}
+                                        autoFocus
+                                        className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2.5 text-sm text-amber-400 font-black focus:outline-none focus:border-amber-400"
+                                    />
+                                </label>
+                                <label className="block space-y-1">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase block">Nome della cassa</span>
+                                    <input
+                                        type="text"
+                                        value={headerDraft.register}
+                                        onChange={e => setHeaderDraft(prev => ({ ...prev, register: e.target.value }))}
+                                        className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2.5 text-sm text-white font-bold focus:outline-none focus:border-amber-400"
+                                    />
+                                </label>
+                                <div className="flex gap-2 pt-1">
+                                    <button type="button" onClick={() => setHeaderDraft(null)} className="flex-1 bg-slate-800 text-slate-300 font-bold text-xs py-3 rounded-2xl">Annulla</button>
+                                    <button type="submit" className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-3 rounded-2xl shadow">Salva</button>
+                                </div>
+                            </form>
                         </div>
                     )}
 

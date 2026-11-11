@@ -8,7 +8,7 @@ Ultimo aggiornamento: **2026-11-11**
 
 | | |
 |---|---|
-| Pubblicato su Pages | **v4** — crediti, incasso per quantità, configurazione, ecc. ([PR #2](https://github.com/ivan18/cassa-bar/pull/2), tag `v4`) |
+| Pubblicato su Pages | **v4.1** — v4 (crediti, incasso per quantità, configurazione) + correzioni responsive ([PR #3](https://github.com/ivan18/cassa-bar/pull/3), tag `v4.1`) |
 | Versione precedente | **v3** (PIN con hash, [PR #1](https://github.com/ivan18/cassa-bar/pull/1), tag `v3`) |
 | PIN della build | `1234` (il PIN vero si imposterà con il JSON di configurazione) |
 
@@ -57,6 +57,8 @@ Formato del file: vedi [config.esempio.json](config.esempio.json) e il [piano v4
 ## Registro sessioni
 
 Una riga per sessione, la più recente in alto: cosa è stato fatto e cosa è rimasto a metà.
+
+- **2026-11-11 (notte, 3)** — v4.1 responsive: modifica dell'intestazione in una finestra (su richiesta dell'utente, prima sforava su telefono), barra delle 7 schede sempre visibile (griglia su telefono, etichette brevi su tablet), select della comanda, nomi soci, piccoli a capo; fix della build sulle icone in elenco. Test estesi (83 controlli). Merge della PR #3, tag `v4.1`.
 
 - **2026-11-11 (notte, 2)** — Creato il JSON di configurazione (24 soci reali, PIN provvisorio 1234) nel Progetto Claude, `config/config-cassa.json`; provato nella v4. Merge della PR #2: v4 pubblicata, tag `v4`.
 - **2026-11-11 (notte)** — Merge PR #1: v3 pubblicata, tag/release `v3` creato via browser. Implementata la v4 sul branch `feat/v4-crediti`: crediti, incasso per quantità, conti ordinati, fondo manuale, configurazione JSON (soci + PIN), filtro A–Z, backup con crediti e PIN, fix fondo 0. Test e2e estesi (tutti superati, anche con PIN diverso). Esclusi in attesa di decisione: Tavolo Generico (D4), PIN su Elimina credito (D3).

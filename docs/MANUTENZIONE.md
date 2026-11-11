@@ -13,7 +13,7 @@ npm ci        # installa le versioni fissate in package-lock.json
 
 1. Creare un branch: `git switch -c feat/nome-modifica`.
 2. Modificare **solo `src/orig.html`**. Per un'anteprima veloce si può aprire direttamente nel browser (usa le CDN; il PIN non funziona perché i segnaposto non sono sostituiti).
-3. Se si aggiunge un'icona, usare `<Icon name="NomeLucide" />` con il nome esatto di Lucide (es. `CreditCard`): la build la incorpora, e si ferma con un errore se il nome non esiste.
+3. Se si aggiunge un'icona, usare `<Icon name="NomeLucide" />` con il nome esatto di Lucide (es. `CreditCard`), oppure `icon: 'NomeLucide'` in un elenco (come la barra delle schede): la build le incorpora, e si ferma con un errore se il nome non esiste. Un nome passato in altro modo (variabile calcolata) non viene visto e l'icona non compare.
 4. Build e test (sotto). Non modificare a mano `index.html`, `sw.js`, `manifest.webmanifest`: vengono riscritti.
 
 ## Build

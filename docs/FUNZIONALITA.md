@@ -6,8 +6,8 @@ Sito: https://ivan18.github.io/cassa-bar/
 Da aggiornare a ogni rilascio che cambia il comportamento dell'app.
 
 ## Generali
-- Intestazione modificabile con un clic: nome dell'associazione e nome della cassa, salvati nel dispositivo.
-- Sette schede: Cassa, Conti aperti (badge con il numero dei conti), Crediti (badge con il numero dei crediti), Chiusura cassa, Prodotti, Soci, Storico.
+- Intestazione modificabile con un clic sul nome: si apre una finestra con nome dell'associazione e nome della cassa (Annulla / Salva), salvati nel dispositivo.
+- Sette schede: Cassa, Conti aperti (badge con il numero dei conti), Crediti (badge con il numero dei crediti), Chiusura cassa, Prodotti, Soci, Storico. Sono sempre tutte visibili: su telefono in una griglia su due righe, da tablet su una riga.
 - Area protetta da PIN per Chiusura cassa, Prodotti e Soci. Il PIN si inserisce con un tastierino numerico ed è verificato tramite hash SHA-256 (salt + PIN). Vale il PIN impostato con il file di configurazione o con un backup; se non c'è, quello della build. Nessun suggerimento del PIN a schermo.
 - Dati salvati nel localStorage del dispositivo (chiavi `cassa_*`). Funziona offline ed è installabile come PWA.
 

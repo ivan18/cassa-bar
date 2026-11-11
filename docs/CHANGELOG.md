@@ -2,6 +2,13 @@
 
 Ogni versione pubblicata corrisponde a un tag git (`v3`, `v4`…). Le versioni precedenti a v3 sono descritte qui ma non hanno un tag.
 
+## v4.1 — 2026-11-11 — pubblicata ([PR #3](https://github.com/ivan18/cassa-bar/pull/3), tag `v4.1`)
+- **Intestazione**: la modifica di nome dell'associazione e nome della cassa si apre in una finestra (Annulla / Salva) invece che nella barra; prima, su telefono, i campi facevano sforare la pagina e il tasto OK finiva fuori schermo.
+- **Barra delle schede**: tutte e 7 sempre visibili. Fino a 768 px griglia su due righe con icona sopra l'etichetta, da 768 px una riga con etichette brevi (CONTI, CHIUSURA), da 1280 px etichette intere; i badge non vengono più tagliati.
+- Comanda: il menu del socio con nomi lunghi non esce più dalla scheda; nomi dei soci al tavolo meno troncati; piccoli a capo sistemati (soci al tavolo, fondo cassa previsto).
+- Build: incorpora anche le icone indicate come `icon: 'Nome'` negli elenchi.
+- Test: schede visibili e finestra dell'intestazione a 360 / 375 / 768 / 1024 / 1280 px.
+
 ## v4 — 2026-11-11 — pubblicata ([PR #2](https://github.com/ivan18/cassa-bar/pull/2), tag `v4`)
 App (rispetto a v3):
 - Scheda **CREDITI**: alla chiusura cassa i conti aperti diventano crediti (con data), i tavoli si liberano; totale dei sospesi, badge, incasso anche parziale, Elimina con conferma.

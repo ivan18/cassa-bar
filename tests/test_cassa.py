@@ -71,8 +71,16 @@ def ls(page, key):
         return raw
 
 
+TAB_IDS = {'CASSA': 'pos', 'CONTI APERTI': 'open-tabs', 'CREDITI': 'credits', 'CHIUSURA CASSA': 'daily-report',
+           'PRODOTTI': 'products', 'SOCI': 'customers', 'STORICO': 'history'}
+
+
+def tab(page, label):
+    return page.locator(f'header [data-tab="{TAB_IDS[label]}"]')
+
+
 def nav(page, label):
-    page.locator('header button', has_text=re.compile(rf'^{label}')).first.click()
+    tab(page, label).click()
     page.wait_for_timeout(150)
 
 
@@ -235,7 +243,7 @@ with sync_playwright() as p:
           any('3 conti aperti sono passati' in d for d in page.dialogs))
     nav(page, 'CREDITI')
     check('scheda Crediti: totale sospesi (€ 5.50)', '5.50' in page.inner_text('[data-testid="totale-crediti"]'))
-    check('badge dei crediti', '3' in page.locator('header button', has_text='CREDITI').inner_text())
+    check('badge dei crediti', '3' in tab(page, 'CREDITI').inner_text())
     card = page.locator('main .grid > div', has_text='Tavolo 1')
     card.locator('button:has-text("Incassa credito")').click()
     check('incasso credito con tutto selezionato (€ 4.00)', due(page) == '4.00', due(page))
@@ -327,10 +335,27 @@ with sync_playwright() as p:
                                                    {'id': 13, 'name': 'SALATINI', 'price': 0.3, 'qty': 2, 'assignedCustomer': 'Chiara'},
                                                    {'id': 'x', 'name': 'EXTRA', 'price': 1, 'qty': 1, 'assignedCustomer': 'Chiara'}]}]),
     }
-    for w, h in [(375, 812), (768, 1024), (1024, 768)]:
+    for w, h in [(360, 740), (375, 812), (768, 1024), (1024, 768), (1280, 800)]:
         page = open_page(browser, w, h)
         sw = page.evaluate('document.documentElement.scrollWidth')
         check(f'nessuno sforamento a {w}px', sw <= w, f'scrollWidth {sw}')
+        boxes = [tab(page, l).bounding_box() for l in TAB_IDS]
+        hidden = [l for l, b in zip(TAB_IDS, boxes) if not b or b['x'] < 0 or b['x'] + b['width'] > w]
+        check(f'tutte le 7 schede visibili a {w}px', not hidden, ', '.join(hidden))
+        page.click('button[aria-label="Modifica intestazione"]')
+        sw = page.evaluate('document.documentElement.scrollWidth')
+        over = page.evaluate("() => { const f = document.querySelector('form'); return f.scrollWidth - f.clientWidth; }")
+        check(f'modifica intestazione in finestra senza sforamento a {w}px', sw <= w and over <= 0, f'scrollWidth {sw}, eccesso {over}')
+        page.locator('form input').first.fill('ASD PROVA')
+        page.click('form button:has-text("Annulla")')
+        title_after_cancel = page.inner_text('header h1')
+        page.click('button[aria-label="Modifica intestazione"]')
+        page.locator('form input').first.fill('ASD PROVA')
+        page.locator('form input').nth(1).fill('CASSA 2')
+        page.click('form button:has-text("Salva")')
+        check(f'intestazione: Annulla scarta, Salva applica ({w}px)',
+              'PROVA' not in title_after_cancel and 'ASD PROVA' in page.inner_text('header h1')
+              and page.evaluate('localStorage.getItem("cassa_registerName")') == 'CASSA 2')
         for k, v in seed.items():
             page.evaluate('([k, v]) => localStorage.setItem(k, v)', [k, v])
         page.reload()

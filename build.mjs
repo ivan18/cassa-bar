@@ -23,7 +23,8 @@ const jsx = src.match(/<script type="text\/babel">([\s\S]*?)<\/script>/)[1]
 
 // 2. Sostituisci il componente Icon (lucide.createIcons manipola il DOM gestito da React)
 //    con SVG inline generati solo per le icone usate
-const used = [...new Set([...jsx.matchAll(/<Icon name="(\w+)"/g)].map(m => m[1]))];
+// Icone usate: <Icon name="X" /> scritte nel JSX, oppure icon: 'X' negli elenchi (es. barra delle schede)
+const used = [...new Set([...jsx.matchAll(/(?:<Icon name="|\bicon: ')(\w+)/g)].map(m => m[1]))];
 const { icons } = require('lucide');
 const iconData = Object.fromEntries(used.map(n => {
   if (!icons[n]) throw new Error('Icona lucide mancante: ' + n);
