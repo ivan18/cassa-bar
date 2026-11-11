@@ -2,15 +2,14 @@
 
 > Da leggere all'inizio di ogni sessione e da aggiornare alla fine (sezioni "Situazione", "Task" e "Registro sessioni").
 
-Ultimo aggiornamento: **2026-11-11**
+Ultimo aggiornamento: **2026-11-12**
 
 ## Situazione
 
 | | |
 |---|---|
-| Pubblicato su Pages | **v4.1** — v4 (crediti, incasso per quantità, configurazione) + correzioni responsive ([PR #3](https://github.com/ivan18/cassa-bar/pull/3), tag `v4.1`) |
-| In preparazione | **v4.2** — Tavolo Generico, descrizione extra, PIN su Elimina, chiusura che archivia le vendite, report stampabile (branch `feat/v4.2`, PR da aprire/mergiare) |
-| Versione precedente | **v3** (PIN con hash, [PR #1](https://github.com/ivan18/cassa-bar/pull/1), tag `v3`) |
+| Pubblicato su Pages | **v4.2** — Tavolo Generico, descrizione extra, PIN su Elimina, chiusura che archivia le vendite, report stampabile ([PR #7](https://github.com/ivan18/cassa-bar/pull/7), tag `v4.2`) |
+| Versione precedente | **v4.1** (tag `v4.1`) |
 | PIN della build | `1234` (il PIN vero si imposterà con il JSON di configurazione) |
 
 ## Task
@@ -20,8 +19,8 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 ### Subito
 - ☑ Merge della PR #1 (v3) su `main`.
 - ☑ Pubblicazione della v4.1 su Pages: le esecuzioni n. 4 e n. 5 di `pages-build-deployment` sono rimaste bloccate in "Queued" (errore interno di GitHub; githubstatus senza incidenti; quote e fatturazione a posto; "Cancel run" non funziona). Risolto con un nuovo merge (PR #5): la n. 6 è andata a buon fine in 26 s e il sito è alla v4.1 (verificato il 2026-11-11 alle 22:23). Le n. 4 e 5 restano appese in coda: si possono ignorare o annullare quando GitHub lo permette.
-- ☐ Merge della PR della v4.2 e tag `v4.2` (da Releases nel browser).
-- ☐ Aggiornare il dispositivo del bar alla v4.2 (o v4.1 se la 4.2 non è ancora pubblicata): Esporta backup, ricaricare il sito, Carica configurazione (`config/config-cassa.json` del Progetto Claude), eliminare i soci di esempio, Esporta backup.
+- ☑ Merge della PR #7 (v4.2) e release/tag `v4.2` (creata dal browser); Pages pubblicato (esecuzione n. 8) e verificato online il 2026-11-12.
+- ☐ Aggiornare il dispositivo del bar alla v4.2: Esporta backup, ricaricare il sito, Carica configurazione (`config/config-cassa.json` del Progetto Claude), eliminare i soci di esempio, Esporta backup.
 - ☑ Tag `v3` su `23eb5c2` (creato come release da GitHub via browser: dalle sessioni Claude il push dei tag è bloccato).
 - ☑ Merge della PR #2 (v4) e tag `v4`.
 
@@ -32,7 +31,7 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 - ☑ 5.3 JSON di configurazione con i 24 soci reali e PIN provvisorio `1234`: nel Progetto Claude in `config/config-cassa.json` (istruzioni in `config/LEGGIMI.md`), **non nel repo**. Verificato che la v4 lo carica.
 - ☐ Scegliere il PIN definitivo (oggi `1234`, pubblico) e aggiornare il file di configurazione.
 - ☐ 5.5 Migrazione sul dispositivo del bar (vedi "Subito").
-- ◐ v4.2 (vedi [piano, fase 6](PIANO-v4.md#fase-6--v42)): implementata e testata, da pubblicare.
+- ☑ v4.2 (vedi [piano, fase 6](PIANO-v4.md#fase-6--v42)): pubblicata.
 - ☑ Report alla chiusura cassa (D7): nella v4.2.
 
 ### Manutenzione (non urgenti)
@@ -63,6 +62,8 @@ Nessuna.
 ## Registro sessioni
 
 Una riga per sessione, la più recente in alto: cosa è stato fatto e cosa è rimasto a metà.
+
+- **2026-11-12 (2)** — Merge della PR #7, release `v4.2` creata dal browser, sito verificato alla v4.2. Resta l'aggiornamento del dispositivo del bar.
 
 - **2026-11-12** — Decisa D7 (opzione a): alla conferma della chiusura si propone la stampa del suo report. Aggiunta alla v4.2 (PR #7) con i test; tutti superati.
 

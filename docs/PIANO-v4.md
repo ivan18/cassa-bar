@@ -112,4 +112,5 @@ Dalla versione dell'utente "asd_cassa_bar (6)" (Progetto Claude, `versioni/input
 - ☑ 6.5b Alla conferma della chiusura, proposta di stampare il suo report (D7).
 - ☑ 6.6 Scrittura del localStorage protetta: avviso se la memoria è piena.
 - ☑ 6.7 Test e documenti aggiornati.
-- ☐ 6.8 PR, merge, tag `v4.2`, aggiornamento del dispositivo del bar.
+- ☑ 6.8 PR #7, merge, tag `v4.2`.
+- ☐ 6.9 Aggiornamento del dispositivo del bar.

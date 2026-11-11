@@ -2,7 +2,7 @@
 
 Ogni versione pubblicata corrisponde a un tag git (`v3`, `v4`…). Le versioni precedenti a v3 sono descritte qui ma non hanno un tag.
 
-## v4.2 — 2026-11-11 — in preparazione (branch `feat/v4.2`)
+## v4.2 — 2026-11-12 — pubblicata ([PR #7](https://github.com/ivan18/cassa-bar/pull/7), tag `v4.2`)
 App (rispetto a v4.1; funzioni prese dalla versione dell'utente "asd_cassa_bar (6)" e decisioni D3/D4):
 - **Tavolo Generico** (D4): pulsante accanto ai soci e voce nel menu della comanda; le voci senza socio restano del tavolo, rientrano in "Intero tavolo" e in nessuna quota socio. Al Banco senza soci la voce va al Tavolo Generico (prima a "Socio").
 - **Descrizione della battuta extra**: campo facoltativo, la voce prende quel nome in maiuscolo invece di "EXTRA".
