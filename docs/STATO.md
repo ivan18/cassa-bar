@@ -18,7 +18,7 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
 ### Subito
 - ☑ Merge della PR #1 (v3) su `main`.
-- ☐ Verificare che GitHub Pages abbia pubblicato la v4.1 (alle 21:30 la pubblicazione era ancora in coda su Actions): cliccando sul nome dell'associazione deve aprirsi la finestra "Modifica nomi".
+- ◐ Pubblicazione della v4.1 su Pages: le esecuzioni n. 4 e n. 5 di `pages-build-deployment` sono rimaste in "Queued" (errore interno di GitHub, request ID `b66e6e11-de0f-11f1-8a67-3c2021995163`; githubstatus senza incidenti; quote e fatturazione verificate: tutto a posto; "Cancel run" fallisce). Ripubblicato con un nuovo merge il 2026-11-11 alle 22:20. Verifica: cliccando sul nome dell'associazione deve aprirsi la finestra "Modifica nomi".
 - ☐ Aggiornare il dispositivo del bar alla v4.1: Esporta backup, ricaricare il sito, Carica configurazione (`config/config-cassa.json` del Progetto Claude), eliminare i soci di esempio, Esporta backup.
 - ☑ Tag `v3` su `23eb5c2` (creato come release da GitHub via browser: dalle sessioni Claude il push dei tag è bloccato).
 - ☑ Merge della PR #2 (v4) e tag `v4`.
