@@ -67,7 +67,7 @@ Ogni voce di comanda: `{...prodotto, cartItemId, qty, assignedCustomer}`. Il bac
 ## Dove si trovano le cose
 
 - **Repo GitHub `ivan18/cassa-bar`**: fonte di verità per sorgente, build, test e documenti.
-- **Progetto Claude "cassa-bar"**: storico delle sessioni e file di riferimento non pubblicabili, in particolare `versioni/input-2026-11-11-crediti/asd_cassa_bar.html` (versione con i crediti fornita dall'utente, contiene i nomi reali dei soci: **non copiarla nel repo**). Le copie dei documenti che stanno lì (`claude/*.md`) sono superate da quelle in `docs/`.
+- **Progetto Claude "cassa-bar"**: storico delle sessioni e file di riferimento non pubblicabili, in particolare `versioni/input-2026-11-11-crediti/asd_cassa_bar.html` (versione con i crediti fornita dall'utente, contiene i nomi reali dei soci: **non copiarla nel repo**). Lì c'è anche il **file di configurazione reale** (`config/config-cassa.json`: soci e PIN) con le istruzioni in `config/LEGGIMI.md`. Le copie dei documenti che stanno lì (`claude/*.md`) sono superate da quelle in `docs/`.
 
 ## Glossario
 

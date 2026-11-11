@@ -96,6 +96,6 @@ python3 tests/test_cassa.py dist/cassa_smart_bar_pub.html 1234
 ## Fase 5 — Rilascio
 - ☑ 5.1 Build con il PIN scelto: `CASSA_PIN=xxxx npm run build` (per ora `1234`; il PIN vero arriverà dal JSON di configurazione).
 - ☑ 5.2 Aggiornare `docs/CHANGELOG.md`, `docs/FUNZIONALITA.md`, `docs/CONTESTO.md` (modello dati) e `docs/STATO.md`.
-- ☐ 5.3 Preparare il JSON di configurazione con i soci reali e il PIN (D1, D2), **fuori dal repo**, e caricarlo sul dispositivo del bar.
+- ◐ 5.3 JSON di configurazione con i soci reali e il PIN (D1, D2): pronto nel Progetto Claude (`config/config-cassa.json`, PIN provvisorio `1234`), **fuori dal repo**; da caricare sul dispositivo del bar dopo il rilascio.
 - ◐ 5.4 PR su `main`, merge, tag `v4`.
 - ☐ 5.5 Migrazione sul dispositivo del bar: Esporta backup dalla versione online attuale, aggiornare e reimportare (vedi [MANUTENZIONE.md](MANUTENZIONE.md#aggiornare-il-dispositivo-del-bar)).
