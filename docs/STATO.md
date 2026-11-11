@@ -33,6 +33,7 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 - ☐ Scegliere il PIN definitivo (oggi `1234`, pubblico) e aggiornare il file di configurazione.
 - ☐ 5.5 Migrazione sul dispositivo del bar (vedi "Subito").
 - ◐ v4.2 (vedi [piano, fase 6](PIANO-v4.md#fase-6--v42)): implementata e testata, da pubblicare.
+- ☐ Report con la chiusura cassa: decidere D7 (sotto), poi implementare.
 
 ### Manutenzione (non urgenti)
 - ☐ Valutare una GitHub Action che esegua build + test a ogni PR (oggi si lanciano a mano).
@@ -56,7 +57,9 @@ Formato del file: vedi [config.esempio.json](config.esempio.json) e il [piano v4
 
 ### Aperte
 
-Nessuna.
+| # | Domanda | Opzioni (non decisa) |
+|---|---------|----------------------|
+| D7 | "Aggiungere la chiusura cassa nel report" (richiesta dell'utente, 2026-11-11) | Il report di ogni chiusura esiste già dalla v4.2 (tasto "Report" nell'archivio). Da chiarire cosa aggiungere: **a)** alla conferma della chiusura proporre subito la stampa del suo report; **b)** nel report della serata (Storico) mostrare anche cassiere, importo al presidente e fondo per domani presi dal modulo di chiusura; **c)** un report riepilogativo di più chiusure (archivio o periodo) con i totali. |
 
 ## Registro sessioni
 
