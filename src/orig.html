@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Cassa Smart Bar & Pub</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel standalone per JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        button, label { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }
+        @media (max-width: 640px) { input, select { font-size: 16px !important; } }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        const INITIAL_PRODUCTS = [
+            { id: 1, name: 'DREHER 66 cl', category: 'Birre', price: 2.00, color: 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-300' },
+            { id: 2, name: 'PERONI 66 cl', category: 'Birre', price: 2.00, color: 'bg-red-600 hover:bg-red-500 text-white border-red-400' },
+            { id: 3, name: 'BAVARIA 66 cl', category: 'Birre', price: 2.00, color: 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400' },
+            { id: 4, name: 'DREHER 33 cl', category: 'Birre', price: 1.10, color: 'bg-amber-400 hover:bg-amber-300 text-slate-950 border-amber-200' },
+            { id: 5, name: 'PERONI 33 cl', category: 'Birre', price: 1.20, color: 'bg-red-500 hover:bg-red-400 text-white border-red-300' },
+            { id: 7, name: 'COCA COLA', category: 'Bibite', price: 1.50, color: 'bg-red-900 hover:bg-red-800 text-white border-red-700' },
+            { id: 8, name: 'FANTA', category: 'Bibite', price: 1.50, color: 'bg-orange-500 hover:bg-orange-400 text-slate-950 border-orange-300' },
+            { id: 12, name: 'GASSOSA', category: 'Bibite', price: 1.00, color: 'bg-teal-500 hover:bg-teal-400 text-slate-950 border-teal-300' },
+            { id: 9, name: 'ACQUA 500 ml', category: 'Bibite', price: 0.50, color: 'bg-sky-500 hover:bg-sky-400 text-slate-950 border-sky-300' },
+            { id: 10, name: 'PATATINE', category: 'Snack', price: 1.50, color: 'bg-yellow-600 hover:bg-yellow-500 text-white border-yellow-400' },
+            { id: 13, name: 'SALATINI', category: 'Snack', price: 0.30, color: 'bg-yellow-500 hover:bg-yellow-400 text-slate-950 border-yellow-300' },
+            { id: 11, name: 'CAFFÈ', category: 'Bar', price: 1.00, color: 'bg-stone-700 hover:bg-stone-600 text-amber-200 border-stone-500' }
+        ];
+
+        // PIN area protetta: nel codice c'è solo l'hash SHA-256 (salt + PIN), generato da build.mjs
+        const PIN_SALT = '__PIN_SALT__';
+        const PIN_HASH = '__PIN_HASH__';
+
+        async function sha256Hex(text) {
+            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+            return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        const INITIAL_CUSTOMERS = ['Andrea', 'Chiara', 'Giuseppe', 'Luca', 'Marco', 'Matteo', 'Paolo', 'Roberto'];
+        // Rimuoviamo Tavolo 7 e Tavolo 8
+        const TABLES = ['Banco', 'Tavolo 1', 'Tavolo 2', 'Tavolo 3', 'Tavolo 4', 'Tavolo 5', 'Tavolo 6'];
+
+        function Icon({ name, className = "w-5 h-5" }) {
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [name]);
+            return <i data-lucide={name.toLowerCase()} className={className}></i>;
+        }
+
+        function App() {
+            const [activeTab, setActiveTab] = useState('pos');
+
+            // Intestazione Personalizzabile
+            const [clubName, setClubName] = useState(() => {
+                return localStorage.getItem('cassa_clubName') || 'ASD DON ERBERTO BELLINO APS';
+            });
+            const [registerName, setRegisterName] = useState(() => {
+                return localStorage.getItem('cassa_registerName') || 'CASSA';
+            });
+            const [isEditingHeader, setIsEditingHeader] = useState(false);
+
+            useEffect(() => { localStorage.setItem('cassa_clubName', clubName); }, [clubName]);
+            useEffect(() => { localStorage.setItem('cassa_registerName', registerName); }, [registerName]);
+
+            // Autenticazione Password
+            const [authModal, setAuthModal] = useState({
+                open: false,
+                targetTab: '',
+                requiredRole: '',
+                passwordInput: '',
+                error: ''
+            });
+
+            // Persistenza Dati
+            const [products, setProducts] = useState(() => {
+                const saved = localStorage.getItem('cassa_products');
+                return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+            });
+            useEffect(() => { localStorage.setItem('cassa_products', JSON.stringify(products)); }, [products]);
+
+            const [customerList, setCustomerList] = useState(() => {
+                const saved = localStorage.getItem('cassa_customerList');
+                const list = saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
+                return [...list].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
+            });
+            useEffect(() => {
+                localStorage.setItem('cassa_customerList', JSON.stringify(customerList));
+            }, [customerList]);
+
+            const [openTabs, setOpenTabs] = useState(() => {
+                const saved = localStorage.getItem('cassa_openTabs');
+                return saved ? JSON.parse(saved) : [];
+            });
+            useEffect(() => { localStorage.setItem('cassa_openTabs', JSON.stringify(openTabs)); }, [openTabs]);
+
+            const [salesHistory, setSalesHistory] = useState(() => {
+                const saved = localStorage.getItem('cassa_salesHistory');
+                return saved ? JSON.parse(saved) : [];
+            });
+            useEffect(() => { localStorage.setItem('cassa_salesHistory', JSON.stringify(salesHistory)); }, [salesHistory]);
+
+            // Storico Chiusure Cassa Registrate
+            const [dailyClosuresHistory, setDailyClosuresHistory] = useState(() => {
+                const saved = localStorage.getItem('cassa_dailyClosuresHistory');
+                return saved ? JSON.parse(saved) : [];
+            });
+            useEffect(() => { localStorage.setItem('cassa_dailyClosuresHistory', JSON.stringify(dailyClosuresHistory)); }, [dailyClosuresHistory]);
+
+            // Fondo Cassa
+            const [initialFund, setInitialFund] = useState(() => {
+                const saved = localStorage.getItem('cassa_initialFund');
+                return saved ? parseFloat(saved) : 50.00;
+            });
+            useEffect(() => { localStorage.setItem('cassa_initialFund', initialFund.toString()); }, [initialFund]);
+
+            const [activeCategory, setActiveCategory] = useState('TUTTI');
+            const [currentDateTime, setCurrentDateTime] = useState(new Date());
+
+            useEffect(() => {
+                const timer = setInterval(() => setCurrentDateTime(new Date()), 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            // Stato Flusso POS (Nessun socio preselezionato di default)
+            const [activeCustomer, setActiveCustomer] = useState('');
+            const [selectedTable, setSelectedTable] = useState('Banco');
+            const [cart, setCart] = useState([]);
+
+            // Modalità "Servi / Offri a Tutti i Soci Seduti"
+            const [applyToAllMembers, setApplyToAllMembers] = useState(false);
+
+            // Mappa dei soci seduti nei vari tavoli
+            const [tableMembersMap, setTableMembersMap] = useState(() => {
+                const saved = localStorage.getItem('cassa_tableMembersMap');
+                return saved ? JSON.parse(saved) : {};
+            });
+            useEffect(() => {
+                localStorage.setItem('cassa_tableMembersMap', JSON.stringify(tableMembersMap));
+            }, [tableMembersMap]);
+
+            // Modale Gestione Soci al Tavolo
+            const [isManageTableMembersOpen, setIsManageTableMembersOpen] = useState(false);
+            const [tableMemberSearch, setTableMemberSearch] = useState('');
+
+            const [newMemberName, setNewMemberName] = useState('');
+
+            // Form Gestione Nuovi Prodotti
+            const [prodForm, setProdForm] = useState({ id: null, name: '', category: 'Birre', price: '', color: 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-300' });
+
+            // State Chiusura Cassa Form
+            const [closureForm, setClosureForm] = useState({
+                cashierName: 'Operatore Cassa',
+                presidentAmount: '',
+                reasonNotes: 'Consegna Incasso Giornaliero'
+            });
+
+            const [checkoutModal, setCheckoutModal] = useState({
+                open: false,
+                order: null,
+                amountTendered: '',
+                change: 0,
+                selectedCustomerToPay: 'ALL'
+            });
+
+            // Calcoli Derivati
+            const sortedCustomerList = useMemo(() => {
+                return [...customerList].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
+            }, [customerList]);
+
+            const cartTotal = useMemo(() => {
+                return cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            }, [cart]);
+
+            const totalDailySales = useMemo(() => {
+                return salesHistory.reduce((sum, sale) => sum + sale.total, 0);
+            }, [salesHistory]);
+
+            const categories = useMemo(() => {
+                const cats = ['TUTTI', ...new Set(products.map(p => p.category))];
+                return cats;
+            }, [products]);
+
+            const filteredProducts = useMemo(() => {
+                if (activeCategory === 'TUTTI') return products;
+                return products.filter(p => p.category === activeCategory);
+            }, [products, activeCategory]);
+
+            // Soci attivi seduti al tavolo selezionato
+            const currentSittingMembers = useMemo(() => {
+                return tableMembersMap[selectedTable] || [];
+            }, [tableMembersMap, selectedTable]);
+
+            // Authenticate admin section
+            const handleAuthenticate = async () => {
+                const pass = authModal.passwordInput.trim();
+                if (!window.crypto || !crypto.subtle) {
+                    setAuthModal(prev => ({ ...prev, error: 'Verifica PIN non supportata da questo browser.' }));
+                    return;
+                }
+                if (pass && await sha256Hex(PIN_SALT + pass) === PIN_HASH) {
+                    setActiveTab(authModal.targetTab);
+                    setAuthModal({ open: false, targetTab: '', requiredRole: '', passwordInput: '', error: '' });
+                } else {
+                    setAuthModal(prev => ({ ...prev, error: 'PIN errato!', passwordInput: '' }));
+                }
+            };
+
+            // Gestione Tavoli e Soci
+            const handleSelectTable = (table) => {
+                setSelectedTable(table);
+                const sitting = tableMembersMap[table] || [];
+                if (sitting.length > 0) {
+                    setActiveCustomer(sitting[0]);
+                } else {
+                    setActiveCustomer('');
+                }
+                const existingOpenTab = openTabs.find(t => t.table === table);
+                if (existingOpenTab) {
+                    setCart(existingOpenTab.items);
+                } else {
+                    setCart([]);
+                }
+            };
+
+            const toggleMemberAtCurrentTable = (memberName) => {
+                setTableMembersMap(prev => {
+                    const current = prev[selectedTable] || [];
+                    let updated;
+                    if (current.includes(memberName)) {
+                        updated = current.filter(m => m !== memberName);
+                    } else {
+                        updated = [...current, memberName];
+                    }
+                    if (updated.length > 0) {
+                        if (!updated.includes(activeCustomer)) {
+                            setActiveCustomer(updated[0]);
+                        }
+                    } else {
+                        setActiveCustomer('');
+                    }
+                    return { ...prev, [selectedTable]: updated };
+                });
+            };
+
+            // Gestione Carrello POS
+            const addToCart = (product) => {
+                if (applyToAllMembers && currentSittingMembers.length > 0) {
+                    setCart(prev => {
+                        let updated = [...prev];
+                        currentSittingMembers.forEach(member => {
+                            const cartItemId = `${product.id}_${member}_${Date.now()}_${Math.random()}`;
+                            const existingIndex = updated.findIndex(item => item.id === product.id && item.assignedCustomer === member);
+                            if (existingIndex > -1) {
+                                updated[existingIndex] = { ...updated[existingIndex], qty: updated[existingIndex].qty + 1 };
+                            } else {
+                                updated.push({ ...product, cartItemId, qty: 1, assignedCustomer: member });
+                            }
+                        });
+                        return updated;
+                    });
+                    return;
+                }
+
+                const currentMember = activeCustomer || (currentSittingMembers.length > 0 ? currentSittingMembers[0] : 'Socio');
+                const cartItemId = `${product.id}_${currentMember}_${Date.now()}`;
+
+                setCart(prev => {
+                    const existingIndex = prev.findIndex(item => item.id === product.id && item.assignedCustomer === currentMember);
+                    if (existingIndex > -1) {
+                        return prev.map((item, idx) => idx === existingIndex ? { ...item, qty: item.qty + 1 } : item);
+                    }
+                    return [...prev, { ...product, cartItemId, qty: 1, assignedCustomer: currentMember }];
+                });
+            };
+
+            const addCustomPriceToCart = (amount) => {
+                if (applyToAllMembers && currentSittingMembers.length > 0) {
+                    setCart(prev => {
+                        let updated = [...prev];
+                        currentSittingMembers.forEach(member => {
+                            const extraProduct = {
+                                id: `extra_${Date.now()}_${Math.random()}`,
+                                name: 'EXTRA',
+                                category: 'Extra',
+                                price: amount,
+                                color: 'bg-slate-800 text-amber-400 border-amber-400'
+                            };
+                            const cartItemId = `extra_${Date.now()}_${member}_${Math.random()}`;
+                            updated.push({ ...extraProduct, cartItemId, qty: 1, assignedCustomer: member });
+                        });
+                        return updated;
+                    });
+                    return;
+                }
+
+                const currentMember = activeCustomer || (currentSittingMembers.length > 0 ? currentSittingMembers[0] : 'Socio');
+                const extraProduct = {
+                    id: `extra_${Date.now()}_${Math.random()}`,
+                    name: 'EXTRA',
+                    category: 'Extra',
+                    price: amount,
+                    color: 'bg-slate-800 text-amber-400 border-amber-400'
+                };
+                const cartItemId = `extra_${Date.now()}_${currentMember}`;
+                setCart(prev => [...prev, { ...extraProduct, cartItemId, qty: 1, assignedCustomer: currentMember }]);
+            };
+
+            const updateCartQtyByCartItemId = (cartItemId, delta) => {
+                setCart(prev => prev.map(item => {
+                    if (item.cartItemId === cartItemId) {
+                        const newQty = item.qty + delta;
+                        return newQty > 0 ? { ...item, qty: newQty } : null;
+                    }
+                    return item;
+                }).filter(Boolean));
+            };
+
+            const updateItemCustomer = (cartItemId, newCustomer) => {
+                setCart(prev => prev.map(item => item.cartItemId === cartItemId ? { ...item, assignedCustomer: newCustomer } : item));
+            };
+
+            const saveOpenTab = () => {
+                if (cart.length === 0) return;
+                const existingIndex = openTabs.findIndex(t => t.table === selectedTable);
+                const updatedTab = {
+                    id: existingIndex > -1 ? openTabs[existingIndex].id : Date.now(),
+                    table: selectedTable,
+                    items: cart,
+                    total: cartTotal,
+                    time: currentDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    members: currentSittingMembers
+                };
+
+                if (existingIndex > -1) {
+                    setOpenTabs(prev => prev.map((t, i) => i === existingIndex ? updatedTab : t));
+                } else {
+                    setOpenTabs(prev => [...prev, updatedTab]);
+                }
+
+                setCart([]);
+                setSelectedTable('Banco');
+                alert(`Conto per ${selectedTable} salvato con successo!`);
+            };
+
+            const openCheckoutCurrentCart = () => {
+                if (cart.length === 0) return;
+                setCheckoutModal({
+                    open: true,
+                    order: {
+                        id: Date.now(),
+                        table: selectedTable,
+                        items: cart,
+                        total: cartTotal
+                    },
+                    amountTendered: '',
+                    change: 0,
+                    selectedCustomerToPay: 'ALL'
+                });
+            };
+
+            const confirmPayment = () => {
+                if (!checkoutModal.order) return;
+                const targetCustomer = checkoutModal.selectedCustomerToPay;
+
+                if (targetCustomer === 'ALL') {
+                    // Incasso totale tavolo
+                    const saleRecord = {
+                        id: Date.now(),
+                        time: currentDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        table: checkoutModal.order.table,
+                        customerName: 'Intero Tavolo',
+                        items: checkoutModal.order.items,
+                        total: checkoutModal.order.total
+                    };
+                    setSalesHistory(prev => [saleRecord, ...prev]);
+                    setOpenTabs(prev => prev.filter(t => t.table !== checkoutModal.order.table));
+                    if (selectedTable === checkoutModal.order.table) {
+                        setCart([]);
+                        setTableMembersMap(prev => ({ ...prev, [selectedTable]: [] }));
+                        setActiveCustomer('');
+                        setSelectedTable('Banco');
+                    }
+                } else {
+                    // Incasso singolo socio
+                    const memberItems = checkoutModal.order.items.filter(i => (i.assignedCustomer || 'Socio') === targetCustomer);
+                    const memberTotal = memberItems.reduce((sum, i) => sum + i.price * i.qty, 0);
+
+                    if (memberItems.length === 0) return;
+
+                    const saleRecord = {
+                        id: Date.now(),
+                        time: currentDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        table: checkoutModal.order.table,
+                        customerName: targetCustomer,
+                        items: memberItems,
+                        total: memberTotal
+                    };
+                    setSalesHistory(prev => [saleRecord, ...prev]);
+
+                    // Identifica gli articoli rimanenti degli ALTRI soci al tavolo
+                    const remainingItems = checkoutModal.order.items.filter(i => (i.assignedCustomer || 'Socio') !== targetCustomer);
+
+                    // Aggiorna il carrello attivo se stiamo lavorando su questo tavolo
+                    if (selectedTable === checkoutModal.order.table) {
+                        setCart(remainingItems);
+                    }
+
+                    // Rimuovi il socio dalla lista dei soci seduti al tavolo
+                    setTableMembersMap(prev => {
+                        const targetTable = checkoutModal.order.table;
+                        const currentMembers = prev[targetTable] || [];
+                        const updatedMembers = currentMembers.filter(m => m !== targetCustomer);
+
+                        if (activeCustomer === targetCustomer) {
+                            setActiveCustomer(updatedMembers.length > 0 ? updatedMembers[0] : '');
+                        }
+
+                        return {
+                            ...prev,
+                            [targetTable]: updatedMembers
+                        };
+                    });
+
+                    // Aggiorna o rimuovi il conto nei Conti Aperti
+                    setOpenTabs(prev => {
+                        if (remainingItems.length === 0) {
+                            return prev.filter(t => t.table !== checkoutModal.order.table);
+                        } else {
+                            const newTotal = remainingItems.reduce((s, i) => s + i.price * i.qty, 0);
+                            return prev.map(t => t.table === checkoutModal.order.table ? { ...t, items: remainingItems, total: newTotal } : t);
+                        }
+                    });
+                }
+
+                setCheckoutModal({ open: false, order: null, amountTendered: '', change: 0, selectedCustomerToPay: 'ALL' });
+            };
+
+            // Gestione Prodotti Anagrafica
+            const handleSaveProduct = () => {
+                if (!prodForm.name.trim() || !prodForm.price) return;
+                const priceNum = parseFloat(prodForm.price);
+                if (isNaN(priceNum)) return;
+
+                if (prodForm.id) {
+                    setProducts(prev => prev.map(p => p.id === prodForm.id ? { ...p, name: prodForm.name, category: prodForm.category, price: priceNum } : p));
+                } else {
+                    const newProd = {
+                        id: Date.now(),
+                        name: prodForm.name.trim(),
+                        category: prodForm.category,
+                        price: priceNum,
+                        color: 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-300'
+                    };
+                    setProducts(prev => [...prev, newProd]);
+                }
+                setProdForm({ id: null, name: '', category: 'Birre', price: '', color: 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-300' });
+            };
+
+            const handleDeleteProduct = (id) => {
+                setProducts(prev => prev.filter(p => p.id !== id));
+            };
+
+            // Gestione Anagrafica Soci
+            const handleAddNewMember = () => {
+                if (!newMemberName.trim()) return;
+                const nameClean = newMemberName.trim();
+                if (!customerList.includes(nameClean)) {
+                    setCustomerList(prev => [...prev, nameClean].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' })));
+                }
+                setNewMemberName('');
+            };
+
+            const handleDeleteCustomer = (name) => {
+                setCustomerList(prev => prev.filter(c => c !== name));
+            };
+
+            const deleteOpenTab = (id) => {
+                setOpenTabs(prev => prev.filter(t => t.id !== id));
+            };
+
+            const handlePerformDailyClosure = () => {
+                const totalSales = totalDailySales;
+                const presidentVal = parseFloat(closureForm.presidentAmount) || totalSales;
+                const grandTotalInRegister = initialFund + totalSales;
+                const remainingFundForTomorrow = Math.max(0, grandTotalInRegister - presidentVal);
+
+                const newClosure = {
+                    id: Date.now(),
+                    date: currentDateTime.toLocaleDateString(),
+                    time: currentDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    cashierName: closureForm.cashierName || 'Operatore Cassa',
+                    initialFund: initialFund,
+                    totalSales: totalSales,
+                    presidentAmount: presidentVal,
+                    reasonNotes: closureForm.reasonNotes || 'Consegna Incasso',
+                    newInitialFundForNextDay: remainingFundForTomorrow
+                };
+
+                setDailyClosuresHistory(prev => [newClosure, ...prev]);
+                setInitialFund(remainingFundForTomorrow);
+                setSalesHistory([]);
+                setClosureForm(prev => ({ ...prev, presidentAmount: '' }));
+
+                alert(`Chiusura Cassa completata!\n\nImporto versato al Presidente: € ${presidentVal.toFixed(2)}\nFondo Cassa per domani aggiornato a: € ${remainingFundForTomorrow.toFixed(2)}`);
+            };
+
+            const handleDeleteClosure = (id) => {
+                setDailyClosuresHistory(prev => prev.filter(c => c.id !== id));
+            };
+
+            const handleExportBackup = () => {
+                const data = {
+                    products,
+                    customerList,
+                    openTabs,
+                    salesHistory,
+                    dailyClosuresHistory,
+                    initialFund,
+                    clubName,
+                    registerName,
+                    tableMembersMap
+                };
+                const jsonStr = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `backup_cassa_${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+            };
+
+            const handleImportBackup = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        if (data.products) setProducts(data.products);
+                        if (data.customerList) setCustomerList(data.customerList);
+                        if (data.openTabs) setOpenTabs(data.openTabs);
+                        if (data.salesHistory) setSalesHistory(data.salesHistory);
+                        if (data.dailyClosuresHistory) setDailyClosuresHistory(data.dailyClosuresHistory);
+                        if (data.initialFund) setInitialFund(data.initialFund);
+                        if (data.clubName) setClubName(data.clubName);
+                        if (data.registerName) setRegisterName(data.registerName);
+                        if (data.tableMembersMap) setTableMembersMap(data.tableMembersMap);
+                        alert('Backup ripristinato con successo!');
+                    } catch (err) {
+                        alert('Errore nel formato del file di backup!');
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-28 lg:pb-10">
+                    {/* INTESTAZIONE E BARRA SUPERIORE IN BLU ELETTRICO */}
+                    <header className="bg-blue-600 border-b border-blue-500 px-4 py-3 sticky top-0 z-40 shadow-xl">
+                        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:justify-between md:items-center gap-2 md:gap-3">
+                            <div className="flex items-center gap-3">
+                                <div>
+                                    {isEditingHeader ? (
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={clubName}
+                                                onChange={e => setClubName(e.target.value)}
+                                                className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-xs font-black text-amber-400"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={registerName}
+                                                onChange={e => setRegisterName(e.target.value)}
+                                                className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-xs text-white"
+                                            />
+                                            <button onClick={() => setIsEditingHeader(false)} className="bg-amber-400 text-slate-950 px-2 py-1 rounded font-black text-xs">OK</button>
+                                        </div>
+                                    ) : (
+                                        <div onClick={() => setIsEditingHeader(true)} className="cursor-pointer group">
+                                            <h1 className="font-black text-base text-white group-hover:text-amber-300 flex items-center gap-1.5 uppercase tracking-wide">
+                                                <span>{clubName}</span>
+                                                <Icon name="Edit3" className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100" />
+                                            </h1>
+                                            <p className="text-[11px] text-blue-100 font-bold tracking-wider">{registerName}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* NAVIGAZIONE SCHEDE */}
+                            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 px-1 -mx-1 w-full md:w-auto min-w-0">
+                                <button
+                                    onClick={() => setActiveTab('pos')}
+                                    className={`px-3 py-2 rounded-xl font-black text-xs flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap ${activeTab === 'pos' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg scale-105' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
+                                >
+                                    <Icon name="Store" className="w-4 h-4" />
+                                    <span>CASSA</span>
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('open-tabs')}
+                                    className={`px-3 py-2 rounded-xl font-black text-xs flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap relative ${activeTab === 'open-tabs' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg scale-105' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
+                                >
+                                    <Icon name="Bookmark" className="w-4 h-4" />
+                                    <span>CONTI APERTI</span>
+                                    {openTabs.length > 0 && (
+                                        <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black animate-pulse">
+                                            {openTabs.length}
+                                        </span>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setAuthModal({ open: true, targetTab: 'daily-report', requiredRole: 'admin', passwordInput: '', error: '' })}
+                                    className={`px-3 py-2 rounded-xl font-black text-xs flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap ${activeTab === 'daily-report' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg scale-105' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
+                                >
+                                    <Icon name="Lock" className={`w-3.5 h-3.5 ${activeTab === 'daily-report' ? 'text-slate-950' : 'text-blue-200'}`} />
+                                    <span>CHIUSURA CASSA</span>
+                                </button>
+                                <button
+                                    onClick={() => setAuthModal({ open: true, targetTab: 'products', requiredRole: 'mgmt', passwordInput: '', error: '' })}
+                                    className={`px-3 py-2 rounded-xl font-black text-xs flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap ${activeTab === 'products' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg scale-105' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
+                                >
+                                    <Icon name="Lock" className={`w-3.5 h-3.5 ${activeTab === 'products' ? 'text-slate-950' : 'text-blue-200'}`} />
+                                    <span>PRODOTTI</span>
+                                </button>
+                                <button
+                                    onClick={() => setAuthModal({ open: true, targetTab: 'customers', requiredRole: 'mgmt', passwordInput: '', error: '' })}
+                                    className={`px-3 py-2 rounded-xl font-black text-xs flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap ${activeTab === 'customers' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg scale-105' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
+                                >
+                                    <Icon name="Lock" className={`w-3.5 h-3.5 ${activeTab === 'customers' ? 'text-slate-950' : 'text-blue-200'}`} />
+                                    <span>SOCI</span>
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('history')}
+                                    className={`px-3 py-2 rounded-xl font-black text-xs flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap ${activeTab === 'history' ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg scale-105' : 'bg-blue-700/80 text-white hover:bg-blue-700 border border-blue-400/40'}`}
+                                >
+                                    <Icon name="History" className="w-4 h-4" />
+                                    <span>STORICO</span>
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* CORPO PRINCIPALE APPLICAZIONE */}
+                    <main className="max-w-7xl mx-auto p-3 md:p-5">
+                        {/* SCHEDA PRINCIPALE POS CASSA */}
+                        {activeTab === 'pos' && (
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                                <div className="lg:col-span-8 space-y-3">
+                                    <div className="bg-slate-900 border border-slate-800 p-3 rounded-3xl shadow-xl space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Seleziona Tavolo / Banco:</span>
+                                            <button
+                                                onClick={() => setIsManageTableMembersOpen(true)}
+                                                className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black px-3 py-1.5 rounded-xl transition flex items-center gap-1 shadow"
+                                            >
+                                                <Icon name="Users" className="w-4 h-4" />
+                                                <span>SOCI AL TAVOLO ({currentSittingMembers.length})</span>
+                                            </button>
+                                        </div>
+
+                                        {/* Ridistribuzione omogenea su griglia per i tavoli rimasti (Banco + Tavoli 1-6) */}
+                                        <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 pt-1">
+                                            {TABLES.map(table => {
+                                                const hasMembers = (tableMembersMap[table] || []).length > 0;
+                                                const hasOpenOrder = openTabs.some(t => t.table === table);
+                                                const isOccupied = hasMembers || hasOpenOrder;
+                                                const isSelected = selectedTable === table;
+
+                                                let buttonStyle = 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800';
+                                                if (isSelected) {
+                                                    buttonStyle = 'bg-amber-500 text-slate-950 border-white ring-2 ring-amber-400 shadow-md scale-105';
+                                                } else if (isOccupied) {
+                                                    buttonStyle = 'bg-red-600 text-white border-red-500 hover:bg-red-500 shadow-md';
+                                                }
+
+                                                return (
+                                                    <button
+                                                        key={table}
+                                                        onClick={() => handleSelectTable(table)}
+                                                        className={`w-full py-2.5 px-1 rounded-xl text-[11px] font-black uppercase transition border flex items-center justify-center gap-1 text-center truncate ${buttonStyle}`}
+                                                    >
+                                                        {isOccupied && !isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0"></span>}
+                                                        <span className="truncate">{table}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {currentSittingMembers.length > 0 && (
+                                            <div className="pt-2 border-t border-slate-800 flex flex-nowrap items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                                                <button
+                                                    onClick={() => setApplyToAllMembers(!applyToAllMembers)}
+                                                    className={`px-3 py-2 rounded-xl text-xs font-black transition border shrink-0 flex items-center gap-1 ${applyToAllMembers ? 'bg-emerald-500 text-slate-950 border-white ring-2 ring-emerald-400 shadow-lg animate-pulse' : 'bg-slate-950 text-emerald-400 border-emerald-900/60 hover:bg-slate-800'}`}
+                                                >
+                                                    <span>👥 {applyToAllMembers ? 'TUTTI (ON)' : 'TUTTI'}</span>
+                                                </button>
+
+                                                <span className="text-slate-600 font-bold text-xs shrink-0">|</span>
+
+                                                {currentSittingMembers.map(m => (
+                                                    <button
+                                                        key={m}
+                                                        onClick={() => {
+                                                            setApplyToAllMembers(false);
+                                                            setActiveCustomer(m);
+                                                        }}
+                                                        className={`px-3 py-2 rounded-xl text-xs font-black transition border truncate shrink-0 max-w-[120px] ${(!applyToAllMembers && activeCustomer === m) ? 'bg-amber-400 text-slate-950 border-white ring-2 ring-amber-400' : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800'}`}
+                                                    >
+                                                        👤 {m}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex gap-1 overflow-x-auto pb-1">
+                                        {categories.map(cat => (
+                                            <button
+                                                key={cat}
+                                                onClick={() => setActiveCategory(cat)}
+                                                className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase transition shrink-0 ${activeCategory === cat ? 'bg-white text-slate-950 shadow-md' : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'}`}
+                                            >
+                                                {cat}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {filteredProducts.map(p => (
+                                            <button
+                                                key={p.id}
+                                                onClick={() => addToCart(p)}
+                                                className={`${p.color} border p-2.5 rounded-2xl h-[52px] flex items-center justify-between text-left transition transform active:scale-95 shadow-md group`}
+                                            >
+                                                <span className="font-black text-xs uppercase leading-tight line-clamp-2 pr-1">{p.name}</span>
+                                                <span className="font-black text-xs bg-black/20 px-2 py-1 rounded-xl shrink-0">€ {p.price.toFixed(2)}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-slate-900 border border-slate-800 p-3 rounded-3xl shadow-xl space-y-2">
+                                        <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider">Battuta Rapida Extra:</span>
+                                        <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+                                            {Array.from({ length: 20 }, (_, i) => (i + 1) * 0.10).map(val => (
+                                                <button
+                                                    key={val}
+                                                    onClick={() => addCustomPriceToCart(val)}
+                                                    className="bg-slate-950 hover:bg-amber-500 hover:text-slate-950 text-amber-400 border border-slate-800 font-black text-xs py-2 rounded-xl transition shadow text-center"
+                                                >
+                                                    € {val.toFixed(2)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="comanda" className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl p-4 flex flex-col justify-between shadow-2xl space-y-4 scroll-mt-4 lg:sticky lg:top-24 lg:self-start">
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                                            <div>
+                                                <span className="text-[10px] text-amber-400 font-black uppercase tracking-wider block">Comanda Attuale</span>
+                                                <h2 className="font-black text-base text-white uppercase">{selectedTable} {activeCustomer ? `(${activeCustomer})` : ''}</h2>
+                                            </div>
+                                            <button onClick={() => setCart([])} className="text-xs text-rose-400 hover:text-rose-300 font-bold bg-rose-950/40 px-2.5 py-1 rounded-xl border border-rose-900/50">Svuota</button>
+                                        </div>
+
+                                        <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+                                            {cart.length === 0 ? (
+                                                <div className="text-center py-12 text-slate-500 space-y-2">
+                                                    <Icon name="ShoppingCart" className="w-10 h-10 mx-auto opacity-30 text-amber-400" />
+                                                    <p className="font-bold text-xs">Nessun articolo in comanda.</p>
+                                                </div>
+                                            ) : (
+                                                cart.map(item => (
+                                                    <div key={item.cartItemId} className="bg-slate-950 border border-slate-800 p-2.5 rounded-2xl space-y-1.5">
+                                                        <div className="flex justify-between items-start">
+                                                            <div>
+                                                                <span className="font-black text-xs text-white uppercase block">{item.name}</span>
+                                                                <span className="text-[10px] text-amber-400 font-bold">👤 {item.assignedCustomer || 'Socio'}</span>
+                                                            </div>
+                                                            <span className="font-black text-xs text-white">€ {(item.price * item.qty).toFixed(2)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center border-t border-slate-800/60 pt-1.5">
+                                                            <div className="flex items-center gap-1">
+                                                                <button onClick={() => updateCartQtyByCartItemId(item.cartItemId, -1)} className="w-6 h-6 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-black text-xs flex items-center justify-center">-</button>
+                                                                <span className="font-black text-xs text-white px-2">{item.qty}</span>
+                                                                <button onClick={() => updateCartQtyByCartItemId(item.cartItemId, 1)} className="w-6 h-6 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-black text-xs flex items-center justify-center">+</button>
+                                                            </div>
+                                                            <select
+                                                                value={item.assignedCustomer || 'Socio'}
+                                                                onChange={e => updateItemCustomer(item.cartItemId, e.target.value)}
+                                                                className="bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-300 rounded-lg px-2 py-0.5"
+                                                            >
+                                                                {currentSittingMembers.map(c => (
+                                                                    <option key={c} value={c}>{c}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-3 border-t border-slate-800 space-y-3">
+                                        <div className="flex justify-between items-end">
+                                            <span className="text-xs text-slate-400 font-bold uppercase">Totale Comanda</span>
+                                            <span className="text-3xl font-black text-amber-400">€ {cartTotal.toFixed(2)}</span>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                onClick={saveOpenTab}
+                                                disabled={cart.length === 0}
+                                                className="bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white font-black text-xs py-3.5 rounded-2xl border border-slate-700 transition uppercase tracking-wider"
+                                            >
+                                                SALVA CONTO
+                                            </button>
+                                            <button
+                                                onClick={openCheckoutCurrentCart}
+                                                disabled={cart.length === 0}
+                                                className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-black text-xs py-3.5 rounded-2xl transition shadow-lg uppercase tracking-wider"
+                                            >
+                                                INCASSA
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* MODALE SELEZIONE SOCI AL TAVOLO */}
+                        {isManageTableMembersOpen && (
+                            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+                                <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full max-h-[94vh] p-4 sm:p-6 shadow-2xl flex flex-col space-y-4">
+                                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                                        <div>
+                                            <span className="text-[10px] text-amber-400 font-black uppercase tracking-wider block">Assegnazione Soci</span>
+                                            <h3 className="font-black text-lg text-white uppercase">Soci Seduti a: {selectedTable}</h3>
+                                        </div>
+                                        <button onClick={() => setIsManageTableMembersOpen(false)} className="text-slate-400 hover:text-white font-black text-lg w-8 h-8 bg-slate-800 rounded-xl flex items-center justify-center">×</button>
+                                    </div>
+
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Cerca per iniziale (es. M)..."
+                                            value={tableMemberSearch}
+                                            onChange={e => setTableMemberSearch(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white font-bold placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                                        />
+                                        {tableMemberSearch && (
+                                            <button onClick={() => setTableMemberSearch('')} className="absolute right-3 top-3 text-slate-400 hover:text-white text-xs font-black">Pulisci</button>
+                                        )}
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pr-1">
+                                        {sortedCustomerList
+                                            .filter(c => tableMemberSearch.trim() === '' || c.toLowerCase().startsWith(tableMemberSearch.trim().toLowerCase()))
+                                            .map(cust => {
+                                                const isSitting = currentSittingMembers.includes(cust);
+                                                return (
+                                                    <button
+                                                        key={cust}
+                                                        onClick={() => toggleMemberAtCurrentTable(cust)}
+                                                        className={`p-3 rounded-2xl text-xs font-black border transition flex items-center justify-between text-left ${isSitting ? 'bg-amber-500 text-slate-950 border-white ring-2 ring-amber-400 shadow-md' : 'bg-slate-950 text-white border-slate-800 hover:bg-slate-800'}`}
+                                                    >
+                                                        <span>👤 {cust}</span>
+                                                        <span className="text-xs">{isSitting ? '✓' : '+'}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                    </div>
+
+                                    <div className="pt-3 border-t border-slate-800 flex justify-between items-center">
+                                        <span className="text-xs font-bold text-slate-400 font-mono">Totale soci al tavolo: {currentSittingMembers.length}</span>
+                                        <button onClick={() => setIsManageTableMembersOpen(false)} className="bg-amber-500 text-slate-950 font-black text-xs px-6 py-2.5 rounded-2xl shadow">
+                                            CONFERMA E CHIUDI
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB GESTIONE PRODOTTI */}
+                        {activeTab === 'products' && (
+                            <div className="max-w-4xl mx-auto space-y-4">
+                                <h2 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                                    <Icon name="Package" className="w-5 h-5 text-amber-400" />
+                                    <span>Gestione Listino Prodotti</span>
+                                </h2>
+
+                                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 space-y-3">
+                                    <h3 className="text-xs font-black text-amber-400 uppercase">{prodForm.id ? 'Modifica Prodotto' : 'Aggiungi Nuovo Prodotto'}</h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                        <input type="text" placeholder="Nome Prodotto..." value={prodForm.name} onChange={e => setProdForm(prev => ({ ...prev, name: e.target.value }))} className="bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2 text-xs text-white font-bold" />
+                                        <select value={prodForm.category} onChange={e => setProdForm(prev => ({ ...prev, category: e.target.value }))} className="bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2 text-xs text-white font-bold">
+                                            <option value="Birre">Birre</option>
+                                            <option value="Bibite">Bibite</option>
+                                            <option value="Snack">Snack</option>
+                                            <option value="Bar">Bar</option>
+                                            <option value="Extra">Extra</option>
+                                        </select>
+                                        <input type="number" step="0.10" placeholder="Prezzo (€)..." value={prodForm.price} onChange={e => setProdForm(prev => ({ ...prev, price: e.target.value }))} className="bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2 text-xs text-white font-bold" />
+                                    </div>
+                                    <button onClick={handleSaveProduct} className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-5 py-2.5 rounded-2xl transition">
+                                        {prodForm.id ? 'Salva Modifiche' : '+ Inserisci in Listino'}
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                    {products.map(p => (
+                                        <div key={p.id} className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl flex justify-between items-center">
+                                            <div>
+                                                <div className="font-black text-xs text-white uppercase">{p.name}</div>
+                                                <div className="text-[10px] text-slate-400 font-bold">{p.category} - € {p.price.toFixed(2)}</div>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <button onClick={() => setProdForm({ ...p, price: p.price.toString() })} className="text-slate-400 hover:text-white text-xs p-1">✏️</button>
+                                                <button onClick={() => handleDeleteProduct(p.id)} className="text-rose-400 hover:text-rose-300 text-xs p-1">🗑️</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB GESTIONE SOCI */}
+                        {activeTab === 'customers' && (
+                            <div className="max-w-4xl mx-auto space-y-4">
+                                <h2 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                                    <Icon name="Users" className="w-5 h-5 text-amber-400" />
+                                    <span>Anagrafica Soci</span>
+                                </h2>
+
+                                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 flex gap-2">
+                                    <input type="text" placeholder="Nome Nuovo Socio..." value={newMemberName} onChange={e => setNewMemberName(e.target.value)} className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white font-bold" />
+                                    <button onClick={handleAddNewMember} className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-5 py-2.5 rounded-2xl transition">
+                                        + Iscrivi Socio
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                                    {sortedCustomerList.map(c => (
+                                        <div key={c} className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex justify-between items-center text-xs font-black">
+                                            <span className="text-white">👤 {c}</span>
+                                            <button onClick={() => handleDeleteCustomer(c)} className="text-rose-400 hover:text-rose-300 text-xs">×</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB STORICO VENDITE */}
+                        {activeTab === 'history' && (
+                            <div className="max-w-4xl mx-auto space-y-4">
+                                <h2 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                                    <Icon name="History" className="w-5 h-5 text-amber-400" />
+                                    <span>Storico Vendite di Oggi</span>
+                                </h2>
+
+                                {salesHistory.length === 0 ? (
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center text-slate-500 text-xs font-bold">
+                                        Nessuna vendita effettuata in questa sessione.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {salesHistory.map(sale => (
+                                            <div key={sale.id} className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-start gap-3 text-xs">
+                                                <div>
+                                                    <div className="font-black text-white">
+                                                        {sale.time} - <span className="text-amber-400">{sale.table}</span> ({sale.customerName})
+                                                    </div>
+                                                    <div className="text-slate-400 text-[11px] mt-1 flex flex-wrap gap-1">
+                                                        {sale.items.map((it, idx) => (
+                                                            <span key={idx} className="bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
+                                                                {it.qty}x {it.name} (€{(it.price * it.qty).toFixed(2)})
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="text-base font-black text-emerald-400">€ {sale.total.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* TAB CHIUSURA CASSA */}
+                        {activeTab === 'daily-report' && (
+                            <div className="max-w-4xl mx-auto space-y-6">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                                    <h2 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                                        <Icon name="Lock" className="w-5 h-5 text-emerald-400" />
+                                        <span>Chiusura Cassa e Rendicontazione</span>
+                                    </h2>
+                                    <div className="flex gap-2">
+                                        <button onClick={handleExportBackup} className="bg-slate-800 hover:bg-slate-700 text-amber-400 font-black text-xs px-3 py-2 rounded-xl border border-slate-700 flex items-center gap-1.5 transition">
+                                            <Icon name="Download" className="w-4 h-4" />
+                                            <span>Esporta Backup</span>
+                                        </button>
+                                        <label className="bg-slate-800 hover:bg-slate-700 text-white font-black text-xs px-3 py-2 rounded-xl border border-slate-700 flex items-center gap-1.5 transition cursor-pointer">
+                                            <Icon name="Upload" className="w-4 h-4 text-emerald-400" />
+                                            <span>Importa Backup</span>
+                                            <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl text-center space-y-1">
+                                        <span className="text-[10px] font-black uppercase text-slate-400">Fondo Cassa Iniziale</span>
+                                        <div className="text-2xl font-black text-white">€ {initialFund.toFixed(2)}</div>
+                                    </div>
+                                    <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl text-center space-y-1">
+                                        <span className="text-[10px] font-black uppercase text-slate-400">Totale Incassato Oggi</span>
+                                        <div className="text-2xl font-black text-emerald-400">€ {totalDailySales.toFixed(2)}</div>
+                                    </div>
+                                    <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl text-center space-y-1">
+                                        <span className="text-[10px] font-black uppercase text-slate-400">Totale Presente in Cassa</span>
+                                        <div className="text-2xl font-black text-amber-400">€ {(initialFund + totalDailySales).toFixed(2)}</div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
+                                    <h3 className="text-sm font-black text-amber-400 uppercase">Esegui Chiusura & Consegna al Presidente</h3>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase block">Nome Cassiere / Operatore</label>
+                                            <input
+                                                type="text"
+                                                value={closureForm.cashierName}
+                                                onChange={e => setClosureForm(prev => ({ ...prev, cashierName: e.target.value }))}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2 text-xs text-white font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase block">Importo Consegnato al Presidente (€)</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                placeholder={`Default: € ${totalDailySales.toFixed(2)}`}
+                                                value={closureForm.presidentAmount}
+                                                onChange={e => setClosureForm(prev => ({ ...prev, presidentAmount: e.target.value }))}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2 text-xs text-emerald-400 font-black"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase block">Causale / Giustificazione</label>
+                                            <input
+                                                type="text"
+                                                value={closureForm.reasonNotes}
+                                                onChange={e => setClosureForm(prev => ({ ...prev, reasonNotes: e.target.value }))}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2 text-xs text-white font-bold"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center text-xs">
+                                        <span className="text-slate-400 font-bold">Fondo cassa previsto per l'indomani:</span>
+                                        <span className="text-amber-400 font-black text-base">
+                                            € {Math.max(0, (initialFund + totalDailySales) - (parseFloat(closureForm.presidentAmount) || totalDailySales)).toFixed(2)}
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        onClick={handlePerformDailyClosure}
+                                        className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm py-3.5 rounded-2xl transition shadow-lg uppercase tracking-wider"
+                                    >
+                                        CONFERMA ED REGISTRA CHIUSURA CASSA
+                                    </button>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Archivio Storico Chiusure Cassa Registrate</h3>
+                                    {dailyClosuresHistory.length === 0 ? (
+                                        <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl text-center text-slate-500 text-xs font-bold">
+                                            Nessuna chiusura memorizzata nell'archivio.
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {dailyClosuresHistory.map(closure => (
+                                                <div key={closure.id} className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 text-xs">
+                                                    <div className="space-y-1">
+                                                        <div className="font-black text-white text-sm">
+                                                            📅 {closure.date} ore {closure.time} - Cassiere: <span className="text-amber-400">{closure.cashierName}</span>
+                                                        </div>
+                                                        <div className="text-slate-400 text-[11px] flex flex-wrap gap-x-3 gap-y-0.5">
+                                                            <span>Fondo Iniziale: €{closure.initialFund.toFixed(2)}</span>
+                                                            <span>Incasso: €{closure.totalSales.toFixed(2)}</span>
+                                                            <span>Versato: <strong className="text-emerald-400">€{closure.presidentAmount.toFixed(2)}</strong></span>
+                                                        </div>
+                                                        <div className="text-[10px] text-slate-400 italic">
+                                                            Causale: {closure.reasonNotes} | Fondo Cassa per l'indomani: €{closure.newInitialFundForNextDay.toFixed(2)}
+                                                        </div>
+                                                    </div>
+                                                    <button onClick={() => handleDeleteClosure(closure.id)} className="text-rose-400 hover:text-rose-300 text-xs font-bold px-2 py-1 bg-rose-950/40 border border-rose-900/50 rounded-xl">
+                                                        Elimina
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB CONTI APERTI */}
+                        {activeTab === 'open-tabs' && (
+                            <div className="max-w-4xl mx-auto space-y-4">
+                                <h2 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                                    <Icon name="Bookmark" className="w-5 h-5 text-amber-400" />
+                                    <span>Conti Aperti nei Tavoli</span>
+                                </h2>
+
+                                {openTabs.length === 0 ? (
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center text-slate-500 text-xs font-bold">
+                                        Nessun conto aperto nei tavoli al momento.
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {openTabs.map(tab => (
+                                            <div key={tab.id} className="bg-slate-900 border border-slate-800 p-4 rounded-3xl space-y-3 shadow-xl">
+                                                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                                                    <div>
+                                                        <span className="font-black text-sm text-white uppercase">{tab.table}</span>
+                                                        <span className="text-[10px] text-slate-400 font-bold ml-2">ore {tab.time}</span>
+                                                    </div>
+                                                    <span className="text-base font-black text-amber-400">€ {tab.total.toFixed(2)}</span>
+                                                </div>
+
+                                                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                                                    {tab.items.map((item, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center text-xs">
+                                                            <span className="text-slate-300">
+                                                                <strong className="text-amber-400">{item.qty}x</strong> {item.name}
+                                                                <span className="text-[10px] text-slate-500 font-bold ml-1.5">({item.assignedCustomer || 'Socio'})</span>
+                                                            </span>
+                                                            <span className="font-bold text-white">€ {(item.price * item.qty).toFixed(2)}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div className="pt-2 border-t border-slate-800 flex justify-between gap-2">
+                                                    <button onClick={() => deleteOpenTab(tab.id)} className="text-xs text-rose-400 hover:text-rose-300 font-bold bg-rose-950/40 px-3 py-2 rounded-xl border border-rose-900/50">
+                                                        Elimina
+                                                    </button>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                handleSelectTable(tab.table);
+                                                                setActiveTab('pos');
+                                                            }}
+                                                            className="bg-slate-800 hover:bg-slate-700 text-white font-black text-xs px-3 py-2 rounded-xl border border-slate-700"
+                                                        >
+                                                            Modifica
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setCheckoutModal({ open: true, order: tab, amountTendered: '', change: 0, selectedCustomerToPay: 'ALL' });
+                                                            }}
+                                                            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-4 py-2 rounded-xl shadow"
+                                                        >
+                                                            Incassa
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </main>
+
+                    {/* BARRA COMANDA FISSA (TELEFONO / TABLET VERTICALE) */}
+                    {activeTab === 'pos' && (
+                        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-slate-900/95 backdrop-blur border-t border-slate-700 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-2xl">
+                            <div className="max-w-7xl mx-auto flex items-center gap-2">
+                                <button
+                                    onClick={() => document.getElementById('comanda').scrollIntoView({ behavior: 'smooth' })}
+                                    className="flex-1 min-w-0 text-left"
+                                >
+                                    <span className="block text-[10px] font-black uppercase text-slate-400 truncate">
+                                        {selectedTable}{activeCustomer ? ` · ${activeCustomer}` : ''} · {cart.reduce((s, i) => s + i.qty, 0)} art. ▾
+                                    </span>
+                                    <span className="block text-2xl font-black text-amber-400 leading-tight">€ {cartTotal.toFixed(2)}</span>
+                                </button>
+                                <button
+                                    onClick={saveOpenTab}
+                                    disabled={cart.length === 0}
+                                    className="bg-slate-800 disabled:opacity-50 text-white font-black text-xs px-4 py-3.5 rounded-2xl border border-slate-700 uppercase"
+                                >
+                                    Salva
+                                </button>
+                                <button
+                                    onClick={openCheckoutCurrentCart}
+                                    disabled={cart.length === 0}
+                                    className="bg-emerald-500 disabled:opacity-50 text-slate-950 font-black text-xs px-5 py-3.5 rounded-2xl shadow-lg uppercase"
+                                >
+                                    Incassa
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODALE DI AUTENTICAZIONE PASSWORD */}
+                    {authModal.open && (
+                        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xs w-full max-h-[96vh] overflow-y-auto p-5 sm:p-6 shadow-2xl space-y-4 text-center">
+                                <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center mx-auto">
+                                    <Icon name="Lock" className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="font-black text-base text-white uppercase">Area Protetta</h3>
+                                    <p className="text-xs text-slate-400 font-bold mt-1">Inserisci il PIN:</p>
+                                </div>
+                                <input
+                                    type="password"
+                                    readOnly
+                                    placeholder="••••"
+                                    value={authModal.passwordInput}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-center text-lg tracking-widest font-black text-amber-400 focus:outline-none"
+                                />
+                                {authModal.error && <p className="text-[11px] font-bold text-rose-400">{authModal.error}</p>}
+
+                                <div className="grid grid-cols-3 gap-2 pt-1">
+                                    {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
+                                        <button
+                                            key={num}
+                                            onClick={() => setAuthModal(prev => ({ ...prev, passwordInput: prev.passwordInput + num, error: '' }))}
+                                            className="bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white font-black text-base py-3 rounded-2xl transition active:scale-95 shadow"
+                                        >
+                                            {num}
+                                        </button>
+                                    ))}
+                                    <button
+                                        onClick={() => setAuthModal(prev => ({ ...prev, passwordInput: prev.passwordInput.slice(0, -1), error: '' }))}
+                                        className="bg-slate-950 hover:bg-rose-950/60 border border-slate-800 text-rose-400 font-black text-xs py-3 rounded-2xl transition active:scale-95 flex items-center justify-center"
+                                    >
+                                        ⌫
+                                    </button>
+                                    <button
+                                        onClick={() => setAuthModal(prev => ({ ...prev, passwordInput: prev.passwordInput + '0', error: '' }))}
+                                        className="bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white font-black text-base py-3 rounded-2xl transition active:scale-95 shadow"
+                                    >
+                                        0
+                                    </button>
+                                    <button
+                                        onClick={() => setAuthModal(prev => ({ ...prev, passwordInput: '', error: '' }))}
+                                        className="bg-slate-950 hover:bg-amber-950/60 border border-slate-800 text-amber-400 font-black text-xs py-3 rounded-2xl transition active:scale-95"
+                                    >
+                                        C
+                                    </button>
+                                </div>
+
+                                <div className="flex gap-2 pt-2">
+                                    <button onClick={() => setAuthModal({ open: false, targetTab: '', requiredRole: '', passwordInput: '', error: '' })} className="flex-1 bg-slate-800 text-slate-300 font-bold text-xs py-2.5 rounded-2xl">
+                                        Annulla
+                                    </button>
+                                    <button onClick={handleAuthenticate} className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-2.5 rounded-2xl shadow">
+                                        Accedi
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODALE INCASSO */}
+                    {checkoutModal.open && checkoutModal.order && (
+                        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-4 sm:p-5 shadow-2xl space-y-4 max-h-[96vh] overflow-y-auto">
+                                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                                    <div>
+                                        <span className="text-[10px] text-amber-400 font-black uppercase tracking-wider block">Modalità di Pagamento</span>
+                                        <h3 className="font-black text-base text-white uppercase">Incasso: {checkoutModal.order.table}</h3>
+                                    </div>
+                                    <button onClick={() => setCheckoutModal({ open: false, order: null, amountTendered: '', change: 0, selectedCustomerToPay: 'ALL' })} className="text-slate-400 hover:text-white font-black text-lg w-7 h-7 bg-slate-800 rounded-xl flex items-center justify-center">×</button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* COLONNA SINISTRA: SELEZIONE SOCIO & RIEPILOGO ARTICOLI */}
+                                    <div className="space-y-3">
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-black uppercase text-slate-300">Chi sta pagando?</label>
+                                            <select
+                                                value={checkoutModal.selectedCustomerToPay}
+                                                onChange={e => setCheckoutModal(prev => ({ ...prev, selectedCustomerToPay: e.target.value, amountTendered: '' }))}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2.5 text-xs text-amber-400 font-black focus:outline-none focus:border-amber-400"
+                                            >
+                                                <option value="ALL">💳 INTERO TAVOLO ({checkoutModal.order.table})</option>
+                                                {Array.from(new Set(checkoutModal.order.items.map(i => i.assignedCustomer || 'Socio'))).map(cust => (
+                                                    <option key={cust} value={cust}>👤 Quota Socio: {cust}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <span className="text-[11px] font-black uppercase text-slate-400">
+                                                {checkoutModal.selectedCustomerToPay === 'ALL' ? 'Prodotti Ordinati al Tavolo:' : `Prodotti Ordinati da ${checkoutModal.selectedCustomerToPay}:`}
+                                            </span>
+                                            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 max-h-48 overflow-y-auto space-y-1">
+                                                {checkoutModal.order.items
+                                                    .filter(item => checkoutModal.selectedCustomerToPay === 'ALL' || (item.assignedCustomer || 'Socio') === checkoutModal.selectedCustomerToPay)
+                                                    .map((item, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center text-xs border-b border-slate-800/40 pb-1 last:border-0">
+                                                            <span className="text-slate-200">
+                                                                <strong className="text-amber-400 font-black">{item.qty}x</strong> {item.name}
+                                                                {checkoutModal.selectedCustomerToPay === 'ALL' && (
+                                                                    <span className="text-[10px] text-slate-500 font-bold ml-1.5">({item.assignedCustomer || 'Socio'})</span>
+                                                                )}
+                                                            </span>
+                                                            <span className="font-black text-white font-mono">€ {(item.price * item.qty).toFixed(2)}</span>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        </div>
+
+                                        {/* RIEPILOGO TOTALE E RESTO */}
+                                        {(() => {
+                                            const amountDue = checkoutModal.selectedCustomerToPay === 'ALL'
+                                                ? checkoutModal.order.total
+                                                : checkoutModal.order.items
+                                                    .filter(i => (i.assignedCustomer || 'Socio') === checkoutModal.selectedCustomerToPay)
+                                                    .reduce((sum, i) => sum + i.price * i.qty, 0);
+
+                                            const tenderedNum = parseFloat(checkoutModal.amountTendered) || 0;
+                                            const changeDue = Math.max(0, tenderedNum - amountDue);
+
+                                            return (
+                                                <div className="grid grid-cols-2 gap-2 pt-1">
+                                                    <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-center">
+                                                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Totale da Pagar:</span>
+                                                        <div className="text-2xl font-black text-amber-400">€ {amountDue.toFixed(2)}</div>
+                                                    </div>
+
+                                                    <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-center">
+                                                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Resto da Dare:</span>
+                                                        <div className={`text-2xl font-black ${tenderedNum >= amountDue && tenderedNum > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                            € {changeDue.toFixed(2)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    {/* COLONNA DESTRA: INSERIMENTO CONTANTE E TASTIERINO LATERALE */}
+                                    {(() => {
+                                        const amountDue = checkoutModal.selectedCustomerToPay === 'ALL'
+                                            ? checkoutModal.order.total
+                                            : checkoutModal.order.items
+                                                .filter(i => (i.assignedCustomer || 'Socio') === checkoutModal.selectedCustomerToPay)
+                                                .reduce((sum, i) => sum + i.price * i.qty, 0);
+
+                                        return (
+                                            <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-3 flex flex-col justify-between">
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-black uppercase text-amber-400 block">Contante Ricevuto (€):</label>
+                                                    <input
+                                                        type="text"
+                                                        readOnly
+                                                        placeholder="0.00"
+                                                        value={checkoutModal.amountTendered ? `€ ${checkoutModal.amountTendered}` : ''}
+                                                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2 text-center text-xl font-black text-white focus:outline-none"
+                                                    />
+
+                                                    {/* BANCONOTE RAPIDE */}
+                                                    <div className="grid grid-cols-5 gap-1 pt-1">
+                                                        <button
+                                                            onClick={() => setCheckoutModal(prev => ({ ...prev, amountTendered: amountDue.toFixed(2) }))}
+                                                            className="bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 font-black text-[10px] py-1.5 rounded-xl transition"
+                                                        >
+                                                            ESATTO
+                                                        </button>
+                                                        {[5, 10, 20, 50].map(val => (
+                                                            <button
+                                                                key={val}
+                                                                onClick={() => setCheckoutModal(prev => ({ ...prev, amountTendered: val.toString() }))}
+                                                                className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-400 font-black text-xs py-1.5 rounded-xl transition"
+                                                            >
+                                                                €{val}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* TASTIERINO NUMERICO VIRTUALE LATERALE */}
+                                                <div className="grid grid-cols-3 gap-1.5 pt-1">
+                                                    {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
+                                                        <button
+                                                            key={num}
+                                                            onClick={() => setCheckoutModal(prev => ({
+                                                                ...prev,
+                                                                amountTendered: prev.amountTendered + num
+                                                            }))}
+                                                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-black text-base py-3 rounded-xl transition active:scale-95 shadow"
+                                                        >
+                                                            {num}
+                                                        </button>
+                                                    ))}
+                                                    <button
+                                                        onClick={() => setCheckoutModal(prev => ({
+                                                            ...prev,
+                                                            amountTendered: prev.amountTendered.includes('.') ? prev.amountTendered : (prev.amountTendered === '' ? '0.' : prev.amountTendered + '.')
+                                                        }))}
+                                                        className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-400 font-black text-lg py-3 rounded-xl transition active:scale-95"
+                                                    >
+                                                        .
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setCheckoutModal(prev => ({
+                                                            ...prev,
+                                                            amountTendered: prev.amountTendered + '0'
+                                                        }))}
+                                                        className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-black text-base py-3 rounded-xl transition active:scale-95 shadow"
+                                                    >
+                                                        0
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setCheckoutModal(prev => ({
+                                                            ...prev,
+                                                            amountTendered: prev.amountTendered.slice(0, -1)
+                                                        }))}
+                                                        className="bg-slate-900 hover:bg-rose-950/60 border border-slate-800 text-rose-400 font-black text-xs py-3 rounded-xl transition active:scale-95 flex items-center justify-center"
+                                                    >
+                                                        ⌫
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+
+                                <div className="sticky -bottom-4 sm:-bottom-5 -mx-4 sm:-mx-5 -mb-4 sm:-mb-5 px-4 sm:px-5 pt-3 pb-4 sm:pb-5 bg-slate-900 border-t border-slate-800">
+                                    <button onClick={confirmPayment} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm py-3.5 rounded-2xl transition shadow-lg uppercase tracking-wider">
+                                        CONFERMA INCASSO
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

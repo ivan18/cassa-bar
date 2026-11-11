@@ -1,0 +1,10 @@
+{
+  "tipo": "cassa-bar-config",
+  "versione": 1,
+  "soci": [
+    "Mario Rossi",
+    "Giulia Bianchi",
+    "Luca Verdi"
+  ],
+  "pin": "482915"
+}

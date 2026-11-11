@@ -1,0 +1,19 @@
+{
+  "name": "cassa-bar",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Cassa Smart Bar & Pub: app POS offline (PWA) per il bar di un'associazione",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "python3 tests/test_cassa.py dist/cassa_smart_bar_pub.html"
+  },
+  "devDependencies": {
+    "@fontsource-variable/inter": "5.2.8",
+    "esbuild": "0.24.0",
+    "lucide": "0.460.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "tailwindcss": "3.4.17"
+  }
+}
