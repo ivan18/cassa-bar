@@ -42,7 +42,8 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 - ☑ D8 (4 sezioni; PIN unico per la Gestione con blocco automatico dopo 2 minuti) e D9 (extra con foglio: rapidi + tastierino) approvate il 2026-11-12.
 - ☑ Fase 1: scheletro di `v5/` (Vite 8, TypeScript 7, React 19, Tailwind con i token del prototipo, caratteri e icone locali) e 10 test e2e Playwright verdi.
 - ☑ Fase 2: regole della cassa in `src/dominio/` (importi in centesimi interi) e store Zustand con salvataggio in `cassa5_stato`; 52 test verdi (42 del dominio, senza browser).
-- ☐ Fasi 3–7 (dettaglio nel piano). Prossima: Fase 3, Cassa e conti aperti.
+- ☑ Fase 3: navigazione a 4 sezioni, Cassa (tavoli, soci, prodotti, extra, comanda), Conti aperti e crediti con Elimina sotto PIN, Gestione con PIN unico e blocco automatico; 65 test verdi.
+- ☐ Fasi 4–7 (dettaglio nel piano). Prossima: Fase 4, incasso per quantità.
 - Rimandati: migrazione v4.2 → v5 e import dei backup v4; file unico offline / PWA / pubblicazione (da discutere a parità raggiunta).
 
 ### Manutenzione (non urgenti)
@@ -74,7 +75,7 @@ Nessuna.
 
 Una riga per sessione, la più recente in alto: cosa è stato fatto e cosa è rimasto a metà.
 
-- **2026-11-12 (4)** — Flusso di lavoro della v5 sul branch `sviluppo/v5` (PR #11 su `main`). Fase 1 sul branch `feat/v5-scheletro`: scheletro di `v5/` e prima suite Playwright in TypeScript (10 test verdi, anche con PIN diverso; prova negativa sul blocco della rete). Fase 2 sul branch `feat/v5-dominio`: dominio e store, 52 test verdi, prova con errori introdotti di proposito. Prossimo: decidere D8/D9, poi Fase 3.
+- **2026-11-12 (4)** — Flusso di lavoro della v5 sul branch `sviluppo/v5` (PR #11 su `main`). Fase 1 sul branch `feat/v5-scheletro`: scheletro di `v5/` e prima suite Playwright in TypeScript (10 test verdi, anche con PIN diverso; prova negativa sul blocco della rete). Fase 2 sul branch `feat/v5-dominio`: dominio e store, 52 test verdi, prova con errori introdotti di proposito. Decise D8 e D9. Fase 3 sul branch `feat/v5-cassa`: schermate Cassa e Conti, 65 test verdi. Prossimo: Fase 4.
 
 - **2026-11-12 (3)** — Scritto e approvato il piano della v5 ([PIANO-v5.md](PIANO-v5.md)): riscrittura da zero in `v5/` con React + TypeScript + Vite, Zustand (preferito a `useReducer` e Jotai), Playwright in TypeScript, UI riprogettata. Migrazione e file unico rimandati. Fase 0 chiusa: prototipo cliccabile verificato con Chrome a 320 / 375 / 1024 px (quattro giri di revisione), D10–D14 approvate, D8–D9 da discutere. Nota: in WSL Playwright per Python non è installato, quindi `tests/test_cassa.py` qui non parte. Prossimo: Fase 1.
 

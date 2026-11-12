@@ -4,7 +4,7 @@ Lavorare per fasi: per ogni fase un branch `feat/v5-…` aperto da `sviluppo/v5`
 
 Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
-**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). D8 e D9 decise. Fase 3 in corso (Cassa e conti aperti).
+**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). D8 e D9 decise; Fase 3 chiusa (Cassa e conti aperti, 65 test verdi). Prossimo passo: Fase 4 (incasso per quantità).
 
 ## Contesto
 
@@ -111,10 +111,16 @@ Resta com'è nella v4.2, salvo decisione diversa: "Salva conto" torna al Banco m
   - un prodotto deve costare più di zero; cassiere e causale della chiusura possono restare vuoti (nella v4.2 c'erano testi predefiniti);
   - etichette con la sola iniziale maiuscola: "Intero tavolo", "Tavolo generico".
 
-**◐ Fase 3 — Cassa e conti aperti**
-- Layout responsive con le normali media query di Tailwind: le container query del prototipo servivano solo a simulare il telefono dentro la pagina, nessun plugin.
-- Tavoli (occupato), soci al tavolo con filtro A–Z, socio attivo, Tavolo Generico, modalità TUTTI, categorie, battuta extra con descrizione, comanda (quantità, riassegnazione, svuota), Salva conto, barra fissa su telefono.
-- Conti aperti ordinati per tavolo: Modifica, Incassa, Elimina con PIN.
+**☑ Fase 3 — Cassa e conti aperti** — chiusa il 2026-11-12
+- ☑ Struttura (`src/ui/App.tsx`): 4 sezioni (D8), menu in basso sotto i 1024 px e a sinistra da 1024 px; comanda come barra + foglio su telefono (D11), pannello fisso a destra da 1024 px. Layout con le normali media query di Tailwind (nessun plugin).
+- ☑ Stato dell'interfaccia separato e non salvato (`src/stato/ui.ts`): sezione, socio attivo (automatico = primo seduto), TUTTI, categoria, fogli, conferme, richiesta PIN, avvisi. Azioni che toccano entrambi gli store in `src/ui/azioni.ts`.
+- ☑ Componenti comuni: `Foglio` (dal basso / centrato; si chiude toccando fuori solo dove non si perdono dati), `Finestre` (conferme e avvisi dell'app al posto di `confirm`/`alert`, D12; richiesta PIN; avviso breve), `Tastierino`, `InserimentoPin`, `Pulsante`.
+- ☑ Cassa: tavoli con "occupato", soci al tavolo con filtro A–Z, Generico, TUTTI, categorie, prodotti, Extra con rapidi + tastierino + descrizione (D9), comanda per socio con quantità, riassegnazione e Svuota con conferma, Salva conto.
+- ☑ Conti: aperti ordinati per tavolo con Modifica ed Elimina con PIN; vista Crediti con totale dei sospesi ed Elimina con PIN. "Incassa" apre un segnaposto (Fase 4 per i conti, Fase 5 per i crediti); Storico segnaposto (Fase 5).
+- ☑ Gestione: PIN unico (anche più lungo di 4 cifre, si conferma con "Accedi"), si richiude cambiando sezione, con "Blocca" o da solo dopo 2 minuti senza tocchi (D8). Le voci del menu arrivano nelle Fasi 5 e 6.
+- ☑ Test nel browser: `cassa`, `conti`, `gestione` (orologio finto di Playwright per il blocco automatico), `responsive` (320 / 360 / 375 / 768 / 1024 / 1280 px: nessuno sforamento, caselle dei tavoli ≥ 44 px, fogli interi). Totale 65 test verdi con PIN 1234 e 482915.
+- Differenze dal prototipo emerse dai test: i tavoli vanno su due righe da 4 fino a 479 px (a 375 px su una riga erano larghi 41 px, sotto i 44 raccomandati per le dita); il PIN si conferma con "Accedi" perché può avere più di 4 cifre.
+- Corretto anche: il messaggio d'errore della configurazione citava un PIN di esempio ("482915") che sarebbe finito nel codice pubblico.
 
 **☐ Fase 4 — Incasso per quantità**
 - Tutto selezionato all'apertura, preselezioni Intero tavolo / Quota socio / Azzera, + e −, contante con tastierino e tasti rapidi, resto, conferma sempre visibile; etichetta del pagatore nello storico; socio che esce; tavolo che si libera.

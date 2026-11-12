@@ -26,4 +26,10 @@
   /* su iPhone un campo sotto i 16px fa zoomare la pagina */
   @media (max-width: 640px) { input, select { font-size: 16px; } }
   :focus-visible { outline: 2px solid theme('colors.ambra.DEFAULT'); outline-offset: 2px; }
+  /* righe scorrevoli senza barra visibile */
+  .senza-barra { scrollbar-width: none; }
+  .senza-barra::-webkit-scrollbar { display: none; }
 }
+
+/* entrata dei fogli (usata con motion-safe: niente movimento per chi lo ha disattivato) */
+@keyframes sale { from { transform: translateY(16px); opacity: .6; } }

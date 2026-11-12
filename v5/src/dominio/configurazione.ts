@@ -29,7 +29,8 @@ export function leggiConfigurazione(testo: string): Esito<Configurazione> {
     return { ok: false, errore: '"soci" deve essere un elenco di nomi tra virgolette.' };
   }
   if (haPin && (typeof d.pin !== 'string' || !pinValido(d.pin))) {
-    return { ok: false, errore: 'il PIN deve essere un testo di sole cifre, almeno 4 (es. "482915").' };
+    // niente PIN di esempio nel messaggio: finirebbe nel codice pubblico
+    return { ok: false, errore: 'il PIN deve essere un testo di sole cifre tra virgolette, almeno 4.' };
   }
   return {
     ok: true,
