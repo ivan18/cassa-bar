@@ -88,6 +88,9 @@ Regola per i selettori dei test: ogni elemento interattivo usato dai test ha un 
 | D12 | Chiusura in tre passi (Riepilogo, Consegna, Conferma); avvisi e conferme in finestre dell'app, non `confirm`/`alert` | ☑ Approvata (2026-11-12) |
 | D13 | Importi con la virgola (€ 2,00) in app e report | ☑ Approvata (2026-11-12) |
 | D14 | Archivio chiusure come voce propria in Gestione, con Report ed Elimina; l'avviso di memoria piena porta lì | ☑ Approvata (2026-11-12) |
+| D15 | Voci non salvate: cambiando tavolo (o con Conti → Modifica) una finestra chiede "Salva e cambia", "Resta qui" o "Scarta"; la chiusura le segnala. Nella v4.2 si perdevano senza avviso | ☑ Approvata (2026-11-12, emersa nel collaudo) |
+
+Flusso per le modifiche di interfaccia: prima si aggiorna la proposta di interfaccia ([prototipo-v5.html](prototipo-v5.html): comportamento, note, copertura, decisioni), poi il codice in `v5/` e i test.
 
 Resta com'è nella v4.2, salvo decisione diversa: "Salva conto" torna al Banco ma lascia i soci seduti (il tavolo resta occupato).
 
@@ -151,7 +154,7 @@ Resta com'è nella v4.2, salvo decisione diversa: "Salva conto" torna al Banco m
 **☑ Fase 7 — Collaudo di parità** — chiusa il 2026-11-12
 - ☑ Tabella qui sotto: ogni voce di `docs/FUNZIONALITA.md` (v4.2) con il test della v5 che la copre, la decisione che la cambia o il punto aperto che la rimanda. I test sono in `v5/e2e/` (`dominio/` = senza browser).
 - ☑ Garanzie trasversali, in ogni test nel browser (`e2e/supporto.ts`): nessuna richiesta di rete verso l'esterno, nessun errore JavaScript o in console, localStorage vuoto all'inizio. Responsive a 320 / 360 / 375 / 768 / 1024 / 1280 px senza sforamenti (`responsive`). Nessun PIN in chiaro nel bundle (`avvio`), provato con due PIN diversi.
-- ☑ Voci non salvate (segnalato dall'utente; nella v4.2 si perdevano in silenzio): cambiando tavolo, o con Conti → Modifica, se la comanda ha voci diverse dal conto salvato una finestra chiede "Salva e cambia", "Resta qui" o "Scarta". Toccare il tavolo già aperto non cambia nulla. La chiusura cassa avvisa (passi 1 e 3) se la comanda ha voci non salvate, che altrimenti andrebbero perse. Dominio: `vociNonSalvate` in `conti.ts`; le finestre dell'app accettano una terza scelta. Test: `cassa` (2), `chiusura` (1), `dominio/chiusura` (1).
+- ☑ Voci non salvate (D15, segnalato dall'utente; nella v4.2 si perdevano in silenzio): cambiando tavolo, o con Conti → Modifica, se la comanda ha voci diverse dal conto salvato una finestra chiede "Salva e cambia", "Resta qui" o "Scarta". Toccare il tavolo già aperto non cambia nulla. La chiusura cassa avvisa (passi 1 e 3) se la comanda ha voci non salvate, che altrimenti andrebbero perse. Dominio: `vociNonSalvate` in `conti.ts`; le finestre dell'app accettano una terza scelta. Test: `cassa` (2), `chiusura` (1), `dominio/chiusura` (1).
 - ☑ Lacuna trovata e chiusa: il filtro per categoria della Cassa non aveva test. Scrivendolo è emerso un difetto: una categoria rimasta senza prodotti lasciava la Cassa vuota con un filtro senza pulsante; ora si torna a "Tutti" (`cassa`, due test nuovi).
 
 Legenda: ☑ coperta da test · ↻ cambiata da una decisione approvata · ⏳ rimandata a un punto aperto.
@@ -173,7 +176,7 @@ Legenda: ☑ coperta da test · ↻ cambiata da una decisione approvata · ⏳ r
 | Battuta extra: 20 importi rapidi, descrizione facoltativa in maiuscolo, anche in TUTTI | ↻ D9: foglio con 4 importi rapidi e tastierino | `cassa` › extra, `dominio/comanda` › battuta extra |
 | Comanda: voci per socio, + e − (a zero sparisce), riassegnazione, Svuota, totale | ☑ Svuota chiede conferma | `cassa` › quantità e riassegnazione, `dominio/comanda` (4 test) |
 | Salva conto: salva o aggiorna e torna al Banco | ☑ | `cassa` › Salva conto, `dominio/chiusura` › conti aperti |
-| Cambio tavolo: carica il conto del nuovo tavolo (nella v4.2 le voci non salvate si perdevano senza avviso) | ↻ chiede cosa fare delle voci non salvate: Salva e cambia, Resta qui, Scarta | `cassa` › cambio tavolo, › Conti → Modifica, `dominio/chiusura` › voci non salvate |
+| Cambio tavolo: carica il conto del nuovo tavolo (nella v4.2 le voci non salvate si perdevano senza avviso) | ↻ D15: chiede cosa fare delle voci non salvate: Salva e cambia, Resta qui, Scarta | `cassa` › cambio tavolo, › Conti → Modifica, `dominio/chiusura` › voci non salvate |
 | Barra fissa su telefono e tablet in verticale | ↻ D11: barra sotto i 1024 px, pannello da 1024 | `cassa` › barra della comanda, `responsive` |
 | **Incasso** | | |
 | Tutto selezionato all'apertura | ☑ | `incasso` › si apre con tutto selezionato |
