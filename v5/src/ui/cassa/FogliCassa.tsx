@@ -1,9 +1,10 @@
 // Fogli della Cassa: comanda (telefono), soci al tavolo con filtro A–Z, battuta extra (D9).
 import { useState } from 'react';
-import { iniziale, euro, leggiImporto } from '../../dominio/formato';
+import { euro, leggiImporto } from '../../dominio/formato';
 import { cassa, useCassa } from '../../stato/cassa';
 import { ui, useUi } from '../../stato/ui';
 import { battiExtra } from '../azioni';
+import { FiltroAZ, filtraPerIniziale } from '../comuni/FiltroAZ';
 import { Foglio } from '../comuni/Foglio';
 import { Pulsante } from '../comuni/Pulsante';
 import { digitaImporto, Tastierino } from '../comuni/Tastierino';
@@ -11,15 +12,12 @@ import { Comanda } from './Comanda';
 import { useTavolo } from './usaTavolo';
 
 const chiudi = () => ui.getState().chiudiFoglio();
-const LETTERE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 function FoglioSoci() {
   const { tavolo, seduti } = useTavolo();
   const soci = useCassa(s => s.soci);
   const [lettera, setLettera] = useState('');
-  const presenti = new Set(soci.map(iniziale));
-  const elenco = soci.filter(s => !lettera || iniziale(s) === lettera);
-  const az = 'h-9 min-w-9 flex-none rounded-lg bg-lav-3 px-2 text-xs font-bold aria-pressed:bg-ambra aria-pressed:text-ambra-ink disabled:opacity-30';
+  const elenco = filtraPerIniziale(soci, lettera);
 
   return (
     <Foglio
@@ -29,12 +27,7 @@ function FoglioSoci() {
       testId="foglio-soci"
       piede={<Pulsante grande variante="principale" onClick={chiudi}>Fatto</Pulsante>}
     >
-      <div role="group" aria-label="Filtro per iniziale" data-testid="filtro-az" className="senza-barra flex gap-1 overflow-x-auto pb-0.5">
-        <button type="button" aria-pressed={lettera === ''} onClick={() => setLettera('')} className={az}>Tutti</button>
-        {LETTERE.map(l => (
-          <button key={l} type="button" aria-pressed={lettera === l} disabled={!presenti.has(l)} onClick={() => setLettera(l)} className={az}>{l}</button>
-        ))}
-      </div>
+      <FiltroAZ nomi={soci} lettera={lettera} onScegli={setLettera} />
       <div className="grid grid-cols-2 gap-2">
         {elenco.map(s => (
           <button

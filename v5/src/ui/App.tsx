@@ -1,10 +1,12 @@
 // Struttura dell'app: sezione aperta, comanda (barra su telefono, pannello da 1024 px), navigazione, finestre.
 import { useEffect } from 'react';
+import { useCassa } from '../stato/cassa';
 import { ui, useUi } from '../stato/ui';
 import { BarraComanda, Comanda } from './cassa/Comanda';
 import { FogliCassa } from './cassa/FogliCassa';
 import { SchermataCassa } from './cassa/SchermataCassa';
 import { cx } from './comuni/cx';
+import { FoglioIntestazione } from './comuni/FoglioIntestazione';
 import { Finestre } from './comuni/Finestre';
 import { SchermataConti } from './conti/SchermataConti';
 import { FoglioIncasso } from './incasso/FoglioIncasso';
@@ -28,9 +30,18 @@ function useBloccoAutomatico() {
   }, []);
 }
 
+/** Quando la memoria si riempie lo si dice subito, anche se l'avviso in cima alla sezione non è in vista (D14). */
+function useAvvisoMemoria() {
+  const piena = useCassa(s => s.memoriaPiena);
+  useEffect(() => {
+    if (piena) ui.getState().avvisa('Memoria piena: le ultime modifiche potrebbero non essere salvate.');
+  }, [piena]);
+}
+
 export function App() {
   const sezione = useUi(s => s.sezione);
   useBloccoAutomatico();
+  useAvvisoMemoria();
   const cassa = sezione === 'cassa';
 
   return (
@@ -62,6 +73,7 @@ export function App() {
       <FogliCassa />
       <FoglioIncasso />
       <FoglioReport />
+      <FoglioIntestazione />
       <Finestre />
     </div>
   );

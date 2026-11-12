@@ -1,4 +1,4 @@
-// Larghezze da 320 a 1280 px: niente sforamenti, menu sempre completo, comanda nel posto giusto, fogli interi, report e chiusura.
+// Larghezze da 320 a 1280 px: niente sforamenti, menu sempre completo, comanda nel posto giusto, fogli interi, report, chiusura e gestione.
 import { batti, digitaPin, expect, PIN, siediSoci, test } from './supporto';
 
 const sfora = (page: import('@playwright/test').Page) =>
@@ -82,6 +82,29 @@ for (const larghezza of [320, 360, 375, 768, 1024, 1280]) {
       await page.getByTestId('foglio-report').getByRole('button', { name: 'Chiudi' }).click();
       await page.click('[data-testid=voce-archivio]');
       expect(await sfora(page)).toBe(false);
+    });
+
+    test('Prodotti, Soci, Dati, intestazione', async ({ app }) => {
+      const { page } = app;
+      await page.click('[data-testid=intestazione]');
+      await expect(page.getByTestId('salva-intestazione')).toBeInViewport();
+      expect(await sfora(page)).toBe(false);
+      await page.getByTestId('foglio-intestazione').getByRole('button', { name: 'Chiudi' }).click();
+
+      await page.click('[data-testid=nav-gestione]');
+      await digitaPin(page, PIN);
+      for (const voce of ['prodotti', 'soci', 'dati']) {
+        await page.click(`[data-testid=voce-${voce}]`);
+        expect(await sfora(page)).toBe(false);
+        if (voce === 'prodotti') {
+          await page.click('[data-prodotto-listino="Dreher 66 cl"]');
+          await expect(page.getByTestId('salva-prodotto')).toBeInViewport();
+          await expect(page.getByTestId('elimina-prodotto')).toBeInViewport();
+          expect(await sfora(page)).toBe(false);
+          await page.getByTestId('foglio-prodotto').getByRole('button', { name: 'Chiudi' }).click();
+        }
+        await page.click('[data-testid=torna-gestione]');
+      }
     });
   });
 }
