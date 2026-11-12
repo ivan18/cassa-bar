@@ -4,7 +4,7 @@ Lavorare per fasi: per ogni fase un branch `feat/v5-…` aperto da `sviluppo/v5`
 
 Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
-**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). D8 e D9 decise; Fasi 3 e 4 chiuse (Cassa, conti, incasso per quantità; 72 test verdi). Prossimo passo: Fase 5 (chiusura, fondo, storico).
+**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). D8 e D9 decise; Fasi 3 e 4 chiuse (Cassa, conti, incasso per quantità). Fase 5 chiusa (chiusura in tre passi, fondo, archivio, Storico, report stampabile; 89 test verdi). Prossimo passo: Fase 6 (Prodotti, Soci, Dati).
 
 ## Contesto
 
@@ -129,11 +129,18 @@ Resta com'è nella v4.2, salvo decisione diversa: "Salva conto" torna al Banco m
 - ☑ Su telefono contante e resto stanno affiancati sopra il tastierino: il resto si vede senza scorrere (verificato dai test a ogni larghezza).
 - ☑ Test: `e2e/incasso.spec.ts` (8 scenari, ripresi dalla v4.2) e controlli dell'incasso in `responsive`. Totale 72 verdi con PIN 1234 e 482915. Lo Storico che mostra le vendite arriva in Fase 5: per ora i test leggono le vendite salvate.
 
-**☐ Fase 5 — Crediti, chiusura, fondo, storico**
-- Crediti già fatti (incasso parziale in Fase 4, Elimina con PIN in Fase 3); fondo cassa manuale e Azzera, chiusura (cassiere, consegnato, causale, anteprima fondo, conti → crediti, tavoli liberati, archivio con vendite, proposta di stampa), archivio con Report ed Elimina, Storico.
+**☑ Fase 5 — Crediti, chiusura, fondo, storico** — chiusa il 2026-11-12
+- ☑ Crediti: incasso anche parziale (Fase 4), Elimina con PIN (Fase 3).
+- ☑ Storico (`src/ui/storico/`): vendite dall'ultima chiusura, la più recente in alto, con ora, chi ha pagato, tavolo, voci e totale; fondo, incassato e totale in cassa in cima; "Report della serata". Non protetto dal PIN, come nella v4.2.
+- ☑ Gestione (`src/ui/gestione/`): il menu apre Chiusura cassa e Archivio chiusure (voce scelta nello stato dell'interfaccia; si torna al menu cambiando sezione o quando la Gestione si richiude). Prodotti, Soci e Dati restano "in arrivo".
+- ☑ Chiusura in tre passi (D12): **Riepilogo** (fondo iniziale, incassato, in cassa; "Modifica fondo cassa" apre un foglio con tastierino, Imposta e Azzera con conferma; avviso dei conti aperti che passeranno nei crediti), **Consegna** (cassiere, consegnato, che se vuoto vale tutto l'incasso e se non è un importo blocca "Avanti", causale), **Conferma** (riepilogo, fondo per domani, avviso se il consegnato supera il contante). "Registra chiusura" chiama `chiudiCassa` del dominio, poi una finestra riassume conti passati nei crediti, consegnato e nuovo fondo e propone "Stampa report". I dati inseriti restano nel componente: una chiusura lasciata a metà non registra nulla.
+- ☑ Archivio chiusure (D14): la più recente in alto, con consegnato, fondo dopo, vendite archiviate e crediti creati; Report; Elimina con conferma, che avvisa delle vendite che si perdono. Le chiusure senza vendite (versioni precedenti) mostrano solo i totali.
+- ☑ Report stampabile (`src/ui/report/`), anticipato dalla Fase 6 perché serve ad archivio e chiusura: anteprima su carta bianca in un foglio; "Stampa o salva PDF" apre la stampa del browser. La copia stampata è montata direttamente sotto `<body>` e in stampa l'app è nascosta (`index.css`), così lo scorrimento del foglio non taglia il PDF. Il report di una chiusura si chiude quando la Gestione si richiude (contiene le vendite archiviate).
+- ☑ Dominio: `riepilogoSerata` e `totaleCrediti` (stessi numeri in Storico, Chiusura e report), `descriviVoci` ("2× Dreher 66 cl (Andrea), 1× Caffè").
+- ☑ Test: `e2e/storico.spec.ts`, `e2e/chiusura.spec.ts` (tre passi, fondo, Azzera, consegna oltre il contante, chiusura a metà, archivio, blocco automatico con orologio finto, stampa con `emulateMedia('print')`), nuovi casi del dominio e di `responsive`. Totale 89 verdi con PIN 1234 e 482915.
 
 **☐ Fase 6 — Gestione e dati**
-- Aree protette da PIN, intestazione modificabile, Prodotti e Soci, Esporta/Importa backup (formato v5), Carica configurazione (stesso formato `cassa-bar-config` v1, rifiuto totale se non valido), report stampabile della serata e della chiusura.
+- Intestazione modificabile, Prodotti e Soci, Esporta/Importa backup (formato v5), Carica configurazione (stesso formato `cassa-bar-config` v1, rifiuto totale se non valido), avviso di memoria piena che porta all'archivio (D14).
 
 **☐ Fase 7 — Collaudo di parità**
 - Tabella in `docs/PIANO-v5.md`: ogni voce di `docs/FUNZIONALITA.md` → test in `v5/e2e/` che la copre (o decisione D8+ che la cambia).

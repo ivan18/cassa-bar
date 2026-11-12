@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { chiudiCassa, fondoSuccessivo, incassato } from '../../src/dominio/chiusura';
+import { chiudiCassa, fondoSuccessivo, incassato, riepilogoSerata } from '../../src/dominio/chiusura';
+import { descriviVoci } from '../../src/dominio/comanda';
 import { contiOrdinati, salvaConto, vociDelTavolo } from '../../src/dominio/conti';
 import type { StatoDominio, Vendita } from '../../src/dominio/tipi';
 import { statoIniziale } from '../../src/stato/store';
@@ -65,4 +66,19 @@ test('chiusura con consegna parziale: il resto rimane nel fondo', () => {
   const { stato } = chiudiCassa(prima, { cassiere: '', consegnato: 1000, causale: '' }, ADESSO);
   expect(stato.fondo).toBe(5780);
   expect(stato.chiusure[0]?.creditiCreati).toBe(0);
+});
+
+test('riepilogo della serata: fondo, incassato, in cassa, crediti da incassare', () => {
+  const s = {
+    fondo: 5000,
+    vendite: [vendita('22:00', 1780), vendita('21:00', 250)],
+    crediti: [{ id: 'c', tavolo: 'Tavolo 2' as const, voci: [voce('Peroni 66 cl', 200, 2, 'Paolo'), voce('Caffè', 100, 1)], ora: '23:40', dataChiusura: '10/11' }],
+  };
+  expect(riepilogoSerata(s)).toEqual({ fondo: 5000, incassato: 2030, inCassa: 7030, crediti: 500 });
+  expect(riepilogoSerata({ fondo: 0, vendite: [], crediti: [] })).toEqual({ fondo: 0, incassato: 0, inCassa: 0, crediti: 0 });
+});
+
+test('voci in una riga: quantità, nome e socio (il Tavolo generico non si scrive)', () => {
+  expect(descriviVoci([voce('Dreher 66 cl', 200, 2, 'Andrea'), voce('Caffè', 100, 1)])).toBe('2× Dreher 66 cl (Andrea), 1× Caffè');
+  expect(descriviVoci([])).toBe('');
 });

@@ -1,5 +1,5 @@
-// Larghezze da 320 a 1280 px: niente sforamenti, menu sempre completo, comanda nel posto giusto, fogli interi.
-import { batti, expect, siediSoci, test } from './supporto';
+// Larghezze da 320 a 1280 px: niente sforamenti, menu sempre completo, comanda nel posto giusto, fogli interi, report e chiusura.
+import { batti, digitaPin, expect, PIN, siediSoci, test } from './supporto';
 
 const sfora = (page: import('@playwright/test').Page) =>
   page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
@@ -44,6 +44,43 @@ for (const larghezza of [320, 360, 375, 768, 1024, 1280]) {
 
       await page.locator('button:has-text("Salva"):visible').first().click();
       await page.click('[data-testid=nav-conti]');
+      expect(await sfora(page)).toBe(false);
+    });
+
+    test('Storico, report, chiusura in tre passi, archivio', async ({ app }) => {
+      const { page } = app;
+      await batti(page, 'Caffè', 2);
+      await page.locator('button:has-text("Incassa"):visible').first().click();
+      await page.click('[data-testid=conferma-incasso]');
+      await siediSoci(page, 'Tavolo 3', ['Andrea', 'Chiara']);
+      await batti(page, 'Bavaria 66 cl', 2);
+      await page.locator('button:has-text("Salva"):visible').first().click();
+
+      await page.click('[data-testid=nav-storico]');
+      expect(await sfora(page)).toBe(false);
+      await page.click('[data-testid=report-serata]');
+      await expect(page.getByTestId('stampa')).toBeInViewport();
+      expect(await sfora(page)).toBe(false);
+      await page.getByTestId('foglio-report').getByRole('button', { name: 'Chiudi' }).click();
+
+      await page.click('[data-testid=nav-gestione]');
+      await digitaPin(page, PIN);
+      await page.click('[data-testid=voce-chiusura]');
+      await page.click('[data-testid=modifica-fondo]');
+      await expect(page.getByTestId('imposta-fondo')).toBeInViewport();
+      await expect(page.getByTestId('azzera-fondo')).toBeInViewport();
+      expect(await sfora(page)).toBe(false);
+      await page.getByTestId('foglio-fondo').getByRole('button', { name: 'Chiudi' }).click();
+      for (const passo of ['avanti', 'avanti', 'registra-chiusura']) {
+        expect(await sfora(page)).toBe(false);
+        await page.getByTestId(passo).scrollIntoViewIfNeeded();
+        await page.click(`[data-testid=${passo}]`);
+      }
+      await page.getByRole('button', { name: 'Stampa report' }).click();
+      await expect(page.getByTestId('stampa')).toBeInViewport();
+      expect(await sfora(page)).toBe(false);
+      await page.getByTestId('foglio-report').getByRole('button', { name: 'Chiudi' }).click();
+      await page.click('[data-testid=voce-archivio]');
       expect(await sfora(page)).toBe(false);
     });
   });

@@ -33,3 +33,12 @@
 
 /* entrata dei fogli (usata con motion-safe: niente movimento per chi lo ha disattivato) */
 @keyframes sale { from { transform: translateY(16px); opacity: .6; } }
+
+/* Stampa del report: esce solo la copia montata sotto <body>, l'app resta nascosta */
+.solo-stampa { display: none; }
+@media print {
+  @page { margin: 12mm; }
+  html, body { height: auto; background: #fff; }
+  #root { display: none !important; }
+  .solo-stampa { display: block; }
+}

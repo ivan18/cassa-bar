@@ -10,6 +10,10 @@ export const articoli = (voci: readonly Voce[]) => voci.reduce((s, v) => s + v.q
 /** Nome con cui una voce compare: il socio, oppure "Tavolo generico". */
 export const socioDi = (v: Pick<Voce, 'socio'>) => v.socio || TAVOLO_GENERICO;
 
+/** Voci in una riga, per Storico e report: "2× Dreher 66 cl (Andrea), 1× Caffè". */
+export const descriviVoci = (voci: readonly Pick<Voce, 'nome' | 'qta' | 'socio'>[]) =>
+  voci.map(v => `${v.qta}× ${v.nome}${v.socio ? ` (${v.socio})` : ''}`).join(', ');
+
 /** A chi va un prodotto battuto: a ogni socio seduto in modalità TUTTI, altrimenti al socio attivo ('' = generico). */
 export function destinatari(seduti: readonly string[], attivo: string, tutti: boolean): string[] {
   return tutti && seduti.length > 0 ? [...seduti] : [attivo];
