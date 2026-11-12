@@ -72,6 +72,8 @@ Regola per i selettori dei test: ogni elemento interattivo usato dai test ha un 
 
 ## Fasi (ognuna = branch `feat/v5-…` + PR su `sviluppo/v5`, test verdi)
 
+Dal 2026-11-12, finite le fasi, si lavora **trunk-based** su `sviluppo/v5`: rami brevi per ogni modifica, PR e merge appena i test sono verdi (regole in `CLAUDE.md`).
+
 **☑ Fase 0 — Progetto della UI (nessun codice)** — chiusa il 2026-11-12, con D8 e D9 rinviate
 - ☑ Prototipo cliccabile di tutte le funzioni della v4.2, telefono e tablet, con dati di esempio: [prototipo-v5.html](prototipo-v5.html) (si apre nel browser; usa Google Fonts, è un documento e non l'app). Verificato con Chrome a 320 / 375 / 1024 px: nessuno sforamento, pulsanti ≥ 36 px (≥ 40 px da 340 px in su), flussi di incasso e chiusura con importi corretti.
 - ☑ Aspetto approvato: "lavagna del bar", fondo verde scuro, testo gesso, ambra per le azioni principali, rosso per occupato ed eliminazioni; Barlow Condensed per numeri, prezzi e titoli, Inter per il testo.
