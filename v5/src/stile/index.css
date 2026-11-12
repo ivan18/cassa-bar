@@ -1,0 +1,29 @@
+/* Caratteri locali, solo set latino: nessuna richiesta di rete */
+@import '@fontsource/barlow-condensed/latin-500.css';
+@import '@fontsource/barlow-condensed/latin-600.css';
+@import '@fontsource/barlow-condensed/latin-700.css';
+
+/* Inter variabile: il pacchetto dichiara tutti gli alfabeti, qui serve solo il latino */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2-variations');
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    @apply bg-lav font-body text-gesso antialiased;
+  }
+  /* uso con le dita: niente ritardo né riquadro al tocco */
+  button, label { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  /* su iPhone un campo sotto i 16px fa zoomare la pagina */
+  @media (max-width: 640px) { input, select { font-size: 16px; } }
+  :focus-visible { outline: 2px solid theme('colors.ambra.DEFAULT'); outline-offset: 2px; }
+}
