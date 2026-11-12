@@ -4,7 +4,7 @@ Lavorare per fasi: per ogni fase un branch `feat/v5-…` aperto da `sviluppo/v5`
 
 Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
-**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). Prossimo passo: Fase 3 (Cassa e conti aperti), dopo aver deciso D8 e D9.
+**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). D8 e D9 decise. Fase 3 in corso (Cassa e conti aperti).
 
 ## Contesto
 
@@ -75,14 +75,14 @@ Regola per i selettori dei test: ogni elemento interattivo usato dai test ha un 
 **☑ Fase 0 — Progetto della UI (nessun codice)** — chiusa il 2026-11-12, con D8 e D9 rinviate
 - ☑ Prototipo cliccabile di tutte le funzioni della v4.2, telefono e tablet, con dati di esempio: [prototipo-v5.html](prototipo-v5.html) (si apre nel browser; usa Google Fonts, è un documento e non l'app). Verificato con Chrome a 320 / 375 / 1024 px: nessuno sforamento, pulsanti ≥ 36 px (≥ 40 px da 340 px in su), flussi di incasso e chiusura con importi corretti.
 - ☑ Aspetto approvato: "lavagna del bar", fondo verde scuro, testo gesso, ambra per le azioni principali, rosso per occupato ed eliminazioni; Barlow Condensed per numeri, prezzi e titoli, Inter per il testo.
-- ☑ Decisioni D10–D14 approvate, D8–D9 da discutere (vedi sotto).
+- ☑ Decisioni D8–D14 approvate (D8 e D9 il 2026-11-12, dopo la Fase 2).
 
 ### Decisioni della v5
 
 | # | Decisione | Stato |
 |---|-----------|-------|
-| D8 | Navigazione: 4 sezioni (Cassa, Conti, Storico, Gestione) invece di 7 schede; un solo PIN per tutta la Gestione, valido finché non si cambia sezione | ◐ **Da discutere** prima della Fase 3. Nel prototipo è applicata, ma non è decisa. |
-| D9 | Battuta extra: tastierino con importo libero + 4 importi rapidi, al posto dei 20 pulsanti fissi | ◐ **Da discutere** prima della Fase 3. |
+| D8 | Navigazione: **4 sezioni** (Cassa, Conti, Storico, Gestione) invece di 7 schede. **Un solo PIN** per tutta la Gestione, che si richiude cambiando sezione, con "Blocca" oppure **da sola dopo 2 minuti senza tocchi** | ☑ Approvata (2026-11-12) |
+| D9 | Battuta extra: riquadro "Extra" che apre un foglio con 4 importi rapidi (0,50 / 1,00 / 1,50 / 2,00), tastierino per importi liberi e descrizione facoltativa, al posto dei 20 pulsanti fissi | ☑ Approvata (2026-11-12) |
 | D10 | Limiti noti corretti: colore del prodotto da tavolozza; socio eliminato tolto anche dai tavoli; conferma per eliminare prodotti e soci | ☑ Approvata (2026-11-12) |
 | D11 | Comanda su telefono come barra fissa che apre il pannello; su tablet sempre visibile | ☑ Approvata (2026-11-12) |
 | D12 | Chiusura in tre passi (Riepilogo, Consegna, Conferma); avvisi e conferme in finestre dell'app, non `confirm`/`alert` | ☑ Approvata (2026-11-12) |
@@ -111,7 +111,8 @@ Resta com'è nella v4.2, salvo decisione diversa: "Salva conto" torna al Banco m
   - un prodotto deve costare più di zero; cassiere e causale della chiusura possono restare vuoti (nella v4.2 c'erano testi predefiniti);
   - etichette con la sola iniziale maiuscola: "Intero tavolo", "Tavolo generico".
 
-**☐ Fase 3 — Cassa e conti aperti**
+**◐ Fase 3 — Cassa e conti aperti**
+- Layout responsive con le normali media query di Tailwind: le container query del prototipo servivano solo a simulare il telefono dentro la pagina, nessun plugin.
 - Tavoli (occupato), soci al tavolo con filtro A–Z, socio attivo, Tavolo Generico, modalità TUTTI, categorie, battuta extra con descrizione, comanda (quantità, riassegnazione, svuota), Salva conto, barra fissa su telefono.
 - Conti aperti ordinati per tavolo: Modifica, Incassa, Elimina con PIN.
 

@@ -39,10 +39,10 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
 - ☑ Piano approvato (2026-11-12): cartella `v5/`, React + TypeScript + Vite, store Zustand, test e2e con `@playwright/test` (niente Python), UI riprogettata.
 - ☑ Fase 0: prototipo ([prototipo-v5.html](prototipo-v5.html)) con tutte le funzioni della v4.2; approvate D10–D14 (limiti noti, comanda a barra, chiusura in 3 passi e dialoghi dell'app, euro con la virgola, archivio chiusure).
-- ☐ Discutere D8 (navigazione a 4 sezioni, un PIN per tutta la Gestione) e D9 (extra con tastierino): da decidere prima della Fase 3.
+- ☑ D8 (4 sezioni; PIN unico per la Gestione con blocco automatico dopo 2 minuti) e D9 (extra con foglio: rapidi + tastierino) approvate il 2026-11-12.
 - ☑ Fase 1: scheletro di `v5/` (Vite 8, TypeScript 7, React 19, Tailwind con i token del prototipo, caratteri e icone locali) e 10 test e2e Playwright verdi.
 - ☑ Fase 2: regole della cassa in `src/dominio/` (importi in centesimi interi) e store Zustand con salvataggio in `cassa5_stato`; 52 test verdi (42 del dominio, senza browser).
-- ☐ Fasi 3–7 (dettaglio nel piano). Prossima: Fase 3, Cassa e conti aperti: prima decidere D8 e D9.
+- ☐ Fasi 3–7 (dettaglio nel piano). Prossima: Fase 3, Cassa e conti aperti.
 - Rimandati: migrazione v4.2 → v5 e import dei backup v4; file unico offline / PWA / pubblicazione (da discutere a parità raggiunta).
 
 ### Manutenzione (non urgenti)
