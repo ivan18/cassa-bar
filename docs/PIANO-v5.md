@@ -1,6 +1,6 @@
 # Piano di lavoro — v5: riscrittura da zero (React + TypeScript + Vite)
 
-Lavorare per fasi, una PR su `main` per fase. Aggiornare questo file spuntando i punti man mano, e [STATO.md](STATO.md) a fine sessione.
+Lavorare per fasi: per ogni fase un branch `feat/v5-…` aperto da `sviluppo/v5` e una PR verso `sviluppo/v5`. Su `main` la v5 arriva solo alla fine, con un'unica PR `sviluppo/v5` → `main`. All'inizio di ogni fase unire `main` in `sviluppo/v5`. Aggiornare questo file spuntando i punti man mano, e [STATO.md](STATO.md) a fine sessione.
 
 Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
@@ -23,7 +23,8 @@ Fino al passaggio, la v4.2 resta pubblicata e intatta: root del repo, `src/orig.
 
 ## Perché questa architettura
 
-- **Cartella separata `v5/`** con il suo `package.json`: la v4.2 continua a compilarsi e pubblicarsi com'è; la v5 cresce su `main` con PR piccole senza finire su Pages (Pages serve solo la root).
+- **Branch di sviluppo `sviluppo/v5`** (deciso il 2026-11-12): `main` resta uguale al sito pubblicato (Pages serve tutta la root di `main`, cartelle comprese), le correzioni alla v4.2 restano indipendenti e il passaggio alla v5 è una sola PR finale.
+- **Cartella separata `v5/`** con il suo `package.json`: anche sul branch di sviluppo la v4.2 continua a compilarsi e a passare i test com'è.
 - **Dominio puro in TS, separato dalla UI**: le regole che contano (chi paga, quote, resto, chiusura, crediti, validazione di backup e configurazione) diventano funzioni senza React, tipizzate, leggibili e riusabili da ogni schermata.
 - **Un solo store Zustand** (deciso con l'utente il 2026-11-12, dopo il confronto con `useReducer` e Jotai) al posto di 30 `useState` con 12 `useEffect` di salvataggio. Lo stato è un dominio unico e molto legato (un incasso tocca storico, conto, soci seduti, crediti), quindi serve uno store con transizioni atomiche, non atomi separati: per questo Jotai è stato scartato. Ogni azione dello store (es. `incassa`, `chiudiCassa`) è un solo `set` che chiama una funzione pura di `dominio/`; i componenti leggono con selettori e si ridisegnano solo quando cambia ciò che usano. Lo store non contiene logica di business, quindi resta sostituibile.
 - **Persistenza con il middleware `persist` di Zustand su un'unica chiave `cassa5_stato`** (`version: 1` + `migrate` per i formati futuri): salvataggio atomico e, soprattutto, **nessuna collisione con le chiavi `cassa_*` della v4.2** sullo stesso dominio, che restano intatte per la migrazione futura. Nello stato persistito va solo il dato del dominio (`partialize`); restano fuori lo stato della UI: scheda attiva, finestre aperte, bozze dei form.
@@ -69,7 +70,7 @@ v5/
 
 Regola per i selettori dei test: ogni elemento interattivo usato dai test ha un `data-testid` stabile; i test non dipendono dai testi.
 
-## Fasi (ognuna = branch + PR su `main`, test verdi)
+## Fasi (ognuna = branch `feat/v5-…` + PR su `sviluppo/v5`, test verdi)
 
 **☑ Fase 0 — Progetto della UI (nessun codice)** — chiusa il 2026-11-12, con D8 e D9 rinviate
 - ☑ Prototipo cliccabile di tutte le funzioni della v4.2, telefono e tablet, con dati di esempio: [prototipo-v5.html](prototipo-v5.html) (si apre nel browser; usa Google Fonts, è un documento e non l'app). Verificato con Chrome a 320 / 375 / 1024 px: nessuno sforamento, pulsanti ≥ 36 px (≥ 40 px da 340 px in su), flussi di incasso e chiusura con importi corretti.
