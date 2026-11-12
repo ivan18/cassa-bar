@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="it">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Prototipo della v5 (Fase 0): documento di progetto con dati di esempio, non salva nulla. Non fa parte della build. -->
+<title>Cassa v5</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: banco di prova (dispositivo simulato a 375 o 1024 px) + colonna con note, decisioni e copertura della v4.2.
+   L'app simulata ha un solo aspetto scuro ("lavagna del bar"); la cornice della pagina segue il tema. */
+:root {
+  --pg-bg: #eef0ec;
+  --pg-surface: #ffffff;
+  --pg-ink: #1d2420;
+  --pg-muted: #56625c;
+  --pg-line: #d5dad5;
+  --pg-accent: #9a5c0c;
+  --pg-chip: #e3e7e2;
+
+  --lav: #17201c;
+  --lav-2: #1f2a25;
+  --lav-3: #2a3731;
+  --lav-4: #3a4a42;
+  --gesso: #ece8dc;
+  --gesso-dim: #a3ada5;
+  --ambra: #f0a83a;
+  --ambra-ink: #2a1a04;
+  --rosso: #e8705b;
+  --verde: #6cc28a;
+  --carta: #fdfcf8;
+  --inchiostro: #1c1f1d;
+
+  --f-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --pg-bg: #101512; --pg-surface: #18201c; --pg-ink: #e6e9e4; --pg-muted: #9aa59e;
+    --pg-line: #2b3631; --pg-accent: #f0a83a; --pg-chip: #222c27;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --pg-bg: #101512; --pg-surface: #18201c; --pg-ink: #e6e9e4; --pg-muted: #9aa59e;
+  --pg-line: #2b3631; --pg-accent: #f0a83a; --pg-chip: #222c27;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--pg-bg); color: var(--pg-ink);
+  font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--pg-accent); outline-offset: 2px; }
+.app :focus-visible { outline-color: var(--ambra); }
+
+.page { max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+.intro { display: flex; flex-direction: column; gap: 6px; max-width: 68ch; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--pg-accent); font-weight: 600; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: 44px; line-height: 1; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+.intro p { margin: 0; color: var(--pg-muted); }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.seg { display: inline-flex; background: var(--pg-chip); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: transparent; padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 14px; color: var(--pg-muted); white-space: nowrap; min-height: 38px; }
+.seg button[aria-pressed="true"] { background: var(--pg-surface); color: var(--pg-ink); box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+@media (max-width: 440px) { .seg .px { display: none; } }
+.reset { border: 1px solid var(--pg-line); background: transparent; border-radius: 10px; padding: 8px 14px; font-weight: 600; font-size: 14px; color: var(--pg-muted); min-height: 44px; }
+.toolbar .hint { font-size: 13px; color: var(--pg-muted); }
+
+.bench { display: grid; gap: 24px; grid-template-columns: minmax(0, auto) minmax(280px, 400px); align-items: start; }
+.bench.wide { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 860px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+.stage { overflow-x: auto; padding-bottom: 6px; scroll-margin-top: 12px; }
+.frame { border-radius: 30px; padding: 10px; background: #0b0f0d; box-shadow: 0 18px 40px -18px rgb(0 0 0 / .45); width: max-content; }
+.frame.tablet { border-radius: 22px; }
+
+.notes { display: flex; flex-direction: column; gap: 18px; }
+.panel { background: var(--pg-surface); border: 1px solid var(--pg-line); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.panel h2 { font-family: var(--f-display); font-size: 24px; font-weight: 600; margin: 0; line-height: 1.1; }
+.panel h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--pg-muted); margin: 0; font-weight: 600; }
+.panel ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.dec { display: grid; grid-template-columns: 44px 1fr; gap: 4px 10px; padding-block: 10px; border-top: 1px solid var(--pg-line); }
+.dec:first-of-type { border-top: 0; padding-top: 2px; }
+.dec b { font-family: var(--f-display); font-size: 20px; color: var(--pg-accent); line-height: 1.2; }
+.dec strong { display: block; font-weight: 600; }
+.dec span { color: var(--pg-muted); font-size: 14px; }
+details.panel summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+details.panel summary::-webkit-details-marker { display: none; }
+details.panel summary::after { content: "Chiudi"; font-size: 13px; color: var(--pg-muted); }
+details.panel:not([open]) summary::after { content: "Apri"; }
+.cov { display: flex; flex-direction: column; gap: 2px; }
+.cov h4 { margin: 10px 0 2px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--pg-muted); font-weight: 600; }
+.cov button { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; text-align: left; border: 0; background: transparent; padding: 7px 8px; margin-inline: -8px; border-radius: 8px; font-size: 14px; min-height: 36px; }
+.cov button:hover { background: var(--pg-chip); }
+.cov button span:last-child { font-size: 12px; color: var(--pg-accent); font-weight: 600; white-space: nowrap; }
+
+/* ---------- app simulata ---------- */
+.app { container: app / inline-size; position: relative; overflow: hidden; background: var(--lav); color: var(--gesso); font-family: var(--f-body); font-size: 14px; border-radius: 22px; }
+.frame.phone .app { width: 375px; height: 740px; }
+.frame.tablet .app { width: 1024px; height: 720px; border-radius: 14px; }
+@media (max-width: 440px) {
+  .frame.phone { padding: 0; background: transparent; box-shadow: none; width: 100%; }
+  .frame.phone .app { width: 100%; height: 700px; border-radius: 16px; }
+}
+
+.shell { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto auto; grid-template-areas: "main" "bar" "nav"; }
+.main { grid-area: main; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding: 14px 14px 20px; }
+.main > * { flex-shrink: 0; }
+.side { grid-area: side; display: none; }
+.bar { grid-area: bar; }
+.nav { grid-area: nav; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--lav-2); border-top: 1px solid var(--lav-3); }
+.nav button { border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 4px 11px; font-size: 11px; font-weight: 600; color: var(--gesso-dim); position: relative; letter-spacing: .02em; min-height: 56px; }
+.nav button[aria-current="page"] { color: var(--ambra); }
+.nav svg { width: 22px; height: 22px; }
+.nav .badges { position: absolute; top: 4px; left: calc(50% + 6px); display: flex; gap: 2px; }
+
+@container app (min-width: 700px) {
+  .shell { grid-template-columns: 92px minmax(0, 1fr) 340px; grid-template-rows: minmax(0, 1fr); grid-template-areas: "nav main side"; }
+  .shell.full { grid-template-areas: "nav main main"; }
+  .nav { grid-template-columns: 1fr; grid-auto-rows: min-content; align-content: start; gap: 6px; border-top: 0; border-right: 1px solid var(--lav-3); padding-top: 14px; }
+  .nav button { padding: 12px 4px; font-size: 12px; min-height: 64px; }
+  .nav .badges { top: 6px; left: calc(50% + 6px); }
+  .side { display: flex; flex-direction: column; background: var(--lav-2); border-left: 1px solid var(--lav-3); min-height: 0; }
+  .bar { display: none; }
+  .main { padding: 18px 22px 24px; }
+  .prods { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  .shell.full .main { padding-inline: 32px; }
+  .narrowcol { max-width: 640px; width: 100%; }
+}
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
+.club { border: 0; background: transparent; padding: 4px 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--gesso-dim); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; text-align: left; min-width: 0; }
+.club .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.club svg { width: 13px; height: 13px; opacity: .7; flex: none; }
+.clock { font-family: var(--f-display); font-size: 18px; color: var(--gesso-dim); font-variant-numeric: tabular-nums; }
+.title { font-family: var(--f-display); font-size: 30px; font-weight: 700; line-height: 1; margin: 0; letter-spacing: .01em; }
+.lead { margin: -8px 0 0; color: var(--gesso-dim); font-size: 13px; }
+
+.row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.row::-webkit-scrollbar { display: none; }
+.wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+.group { display: flex; flex-direction: column; gap: 8px; }
+.label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--gesso-dim); font-weight: 600; }
+.sec-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.sec-h small { font-size: 11px; color: var(--gesso-dim); }
+.sec-h small i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--rosso); margin-right: 4px; vertical-align: 1px; }
+
+.tavoli { display: grid; grid-template-columns: 1.6fr repeat(6, minmax(0, 1fr)); gap: 6px; }
+.tav { border: 1px solid var(--lav-4); background: var(--lav-2); border-radius: 12px; height: 48px; display: grid; place-items: center; position: relative; padding: 0; }
+.tav .n { font-family: var(--f-display); font-size: 24px; font-weight: 700; line-height: 1; }
+.tav.banco .n { font-size: 17px; letter-spacing: .02em; }
+.tav.occ::after { content: ""; position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--rosso); }
+.tav[aria-pressed="true"] { background: var(--gesso); color: var(--lav); border-color: var(--gesso); }
+
+.chip { flex: none; border: 1px solid var(--lav-4); background: transparent; border-radius: 999px; padding: 0 15px; min-height: 40px; font-weight: 600; font-size: 13px; color: var(--gesso); white-space: nowrap; }
+.chip[aria-pressed="true"] { background: var(--ambra); border-color: var(--ambra); color: var(--ambra-ink); }
+.chip.ghost { border-style: dashed; color: var(--gesso-dim); }
+.chip.tutti[aria-pressed="true"] { background: var(--verde); border-color: var(--verde); color: #0d2416; }
+.chip:disabled { opacity: .4; cursor: not-allowed; }
+
+.prods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.prod { border: 0; background: var(--lav-2); border-radius: 14px; padding: 12px 12px 11px; text-align: left; display: flex; flex-direction: column; gap: 10px; min-height: 88px; box-shadow: inset 0 0 0 1px var(--lav-3); }
+.prod:active { background: var(--lav-3); }
+.prod .cap { width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 0 3px rgb(255 255 255 / .06); }
+.prod .nm { font-weight: 600; font-size: 13px; line-height: 1.25; flex: 1; }
+.prod .pr { font-family: var(--f-display); font-size: 22px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.prod.extra { background: transparent; box-shadow: none; border: 1px dashed var(--lav-4); }
+.prod.extra .pr { color: var(--ambra); font-size: 18px; }
+
+.badge { min-width: 18px; height: 18px; border-radius: 9px; background: var(--rosso); color: #fff; font-size: 11px; font-weight: 700; display: inline-grid; place-items: center; padding: 0 5px; line-height: 1; }
+.badge.amb { background: var(--ambra); color: var(--ambra-ink); }
+
+.cbar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--lav-3); border-top: 1px solid var(--lav-4); }
+.cbar .sum { flex: 1; border: 0; background: transparent; text-align: left; display: flex; flex-direction: column; min-width: 0; padding: 0; min-height: 44px; justify-content: center; }
+.cbar .sum small { color: var(--gesso-dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cbar .sum strong { font-family: var(--f-display); font-size: 26px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.btn { border: 0; border-radius: 12px; padding: 0 14px; min-height: 44px; font-weight: 700; font-size: 14px; letter-spacing: .02em; white-space: nowrap; }
+.btn.pri { background: var(--ambra); color: var(--ambra-ink); }
+.btn.sec { background: var(--lav-4); color: var(--gesso); }
+.btn.dang { background: transparent; color: var(--rosso); box-shadow: inset 0 0 0 1px rgb(232 112 91 / .55); }
+.btn.big { width: 100%; min-height: 54px; font-size: 16px; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.cmd { display: flex; flex-direction: column; gap: 12px; min-height: 0; flex: 1; }
+.cmd-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 16px 0; }
+.cmd-head h2 { font-family: var(--f-display); font-size: 26px; margin: 0; line-height: 1; }
+.linkbtn { border: 0; background: transparent; color: var(--gesso-dim); font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; padding: 0 6px; min-height: 40px; }
+.linkbtn.dang { color: var(--rosso); }
+.cmd-list { overflow-y: auto; padding: 0 16px; display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; }
+.who { display: flex; flex-direction: column; gap: 6px; }
+.who h4 { margin: 0; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--gesso-dim); display: flex; justify-content: space-between; font-weight: 600; }
+.who h4 span { font-variant-numeric: tabular-nums; }
+.line { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; background: var(--lav-3); border-radius: 10px; padding: 8px 10px; }
+.line .nm { font-weight: 600; font-size: 13px; }
+.line .sub { grid-column: 1; font-size: 11px; color: var(--gesso-dim); display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; min-width: 0; }
+.line .sub > * { white-space: nowrap; }
+.line .sub b { color: var(--gesso); font-weight: 600; }
+.line select { background: var(--lav-2); color: var(--gesso); border: 1px solid var(--lav-4); border-radius: 8px; font-size: 12px; padding: 4px 6px; font-family: inherit; min-height: 36px; max-width: 150px; }
+.step { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: 4px; }
+.step button { width: 40px; height: 40px; border-radius: 10px; border: 0; background: var(--lav-4); font-size: 19px; font-weight: 700; line-height: 1; }
+.step output { min-width: 30px; text-align: center; font-family: var(--f-display); font-size: 20px; font-variant-numeric: tabular-nums; }
+.cmd-foot { padding: 12px 16px 16px; border-top: 1px solid var(--lav-4); display: flex; flex-direction: column; gap: 10px; }
+.tot { display: flex; justify-content: space-between; align-items: baseline; }
+.tot span { color: var(--gesso-dim); font-size: 13px; }
+.tot strong { font-family: var(--f-display); font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; }
+.duo { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+.duo.eq { grid-template-columns: 1fr 1fr; }
+.empty { color: var(--gesso-dim); text-align: center; padding: 28px 10px; font-size: 13px; }
+
+.card { background: var(--lav-2); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: inset 0 0 0 1px var(--lav-3); }
+.card-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card-h b { font-family: var(--f-display); font-size: 24px; line-height: 1; }
+.card-h span { color: var(--gesso-dim); font-size: 12px; }
+.card-h strong { font-family: var(--f-display); font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.its { font-size: 13px; color: var(--gesso-dim); display: flex; flex-direction: column; gap: 3px; }
+.its b { color: var(--gesso); font-weight: 600; }
+.acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.acts .grow { flex: 1; }
+.acts .push { margin-left: auto; }
+.cards { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
+@container app (min-width: 700px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.hist { display: flex; flex-direction: column; }
+.hrow { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 2px 10px; padding: 10px 0; border-bottom: 1px solid var(--lav-3); align-items: baseline; }
+.hrow time { font-variant-numeric: tabular-nums; color: var(--gesso-dim); font-size: 13px; }
+.hrow .w { font-weight: 600; }
+.hrow .w span { color: var(--gesso-dim); font-weight: 400; }
+.hrow .d { grid-column: 2 / span 2; color: var(--gesso-dim); font-size: 12px; }
+.hrow strong { font-family: var(--f-display); font-size: 20px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.kpi { background: var(--lav-2); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; box-shadow: inset 0 0 0 1px var(--lav-3); }
+.kpi span { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--gesso-dim); font-weight: 600; }
+.kpi strong { font-family: var(--f-display); font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kpi.hl strong { color: var(--ambra); }
+
+.menu { display: flex; flex-direction: column; gap: 8px; }
+.mi { border: 0; background: var(--lav-2); border-radius: 14px; padding: 14px; text-align: left; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; box-shadow: inset 0 0 0 1px var(--lav-3); min-height: 60px; }
+.mi b { font-size: 15px; }
+.mi span { color: var(--gesso-dim); font-size: 12px; grid-column: 1; }
+.mi i { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-style: normal; color: var(--gesso-dim); font-size: 20px; }
+.back { border: 0; background: transparent; color: var(--gesso-dim); font-weight: 600; font-size: 13px; padding: 0; align-self: flex-start; min-height: 32px; }
+.steps { display: flex; gap: 6px; }
+.steps span { flex: 1; height: 4px; border-radius: 2px; background: var(--lav-4); }
+.steps span.on { background: var(--ambra); }
+.steps-l { display: flex; justify-content: space-between; font-size: 11px; color: var(--gesso-dim); margin-top: -10px; }
+.steps-l .on { color: var(--gesso); font-weight: 600; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label, .field .flabel { font-size: 12px; color: var(--gesso-dim); font-weight: 600; }
+.field input { background: var(--lav-2); border: 1px solid var(--lav-4); border-radius: 10px; padding: 0 12px; min-height: 46px; color: var(--gesso); font: inherit; font-size: 16px; width: 100%; }
+.field input::placeholder { color: #75817a; }
+.note { background: rgb(240 168 58 / .12); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--gesso); }
+.note.err { background: rgb(232 112 91 / .14); }
+.banner { background: var(--rosso); color: #2b0d07; border-radius: 12px; padding: 10px 12px; font-size: 13px; font-weight: 600; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.banner .btn { min-height: 36px; background: #2b0d07; color: #fff; font-size: 12px; }
+.swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+.sw { width: 36px; height: 36px; border-radius: 50%; border: 0; box-shadow: 0 0 0 2px var(--lav-2); }
+.sw[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--lav-2), 0 0 0 4px var(--gesso); }
+.plist { display: flex; flex-direction: column; }
+.prow { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--lav-3); border-left: 0; border-right: 0; border-top: 0; background: transparent; text-align: left; min-height: 52px; width: 100%; }
+.prow .cap { width: 14px; height: 14px; border-radius: 50%; }
+.prow small { color: var(--gesso-dim); display: block; font-size: 12px; }
+.prow strong { font-family: var(--f-display); font-size: 19px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.prow.socio { grid-template-columns: minmax(0, 1fr) auto; }
+.meter { height: 8px; background: var(--lav-4); border-radius: 4px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--verde); }
+.meter.full i { background: var(--rosso); }
+.toggle { display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 0; background: transparent; padding: 0; text-align: left; min-height: 44px; width: 100%; }
+.toggle .sw2 { width: 46px; height: 28px; border-radius: 14px; background: var(--lav-4); position: relative; flex: none; }
+.toggle .sw2::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--gesso); transition: left .15s; }
+.toggle[aria-checked="true"] .sw2 { background: var(--rosso); }
+.toggle[aria-checked="true"] .sw2::after { left: 21px; }
+
+/* fogli e dialoghi */
+.overlay { position: absolute; inset: 0; background: rgb(5 8 6 / .62); display: flex; align-items: flex-end; z-index: 5; }
+.sheet { background: var(--lav-2); width: 100%; max-height: 94%; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.sheet-h { display: flex; justify-content: space-between; align-items: center; padding: 16px 16px 6px; gap: 10px; }
+.sheet-h h2 { font-family: var(--f-display); font-size: 26px; margin: 0; line-height: 1; }
+.x { border: 0; background: var(--lav-3); width: 40px; height: 40px; border-radius: 50%; font-size: 20px; line-height: 1; flex: none; }
+.sheet-b { padding: 8px 16px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.sheet-b > *, .group > *, .card > * { flex-shrink: 0; }
+.sheet-f { padding: 12px 16px 16px; border-top: 1px solid var(--lav-4); display: flex; flex-direction: column; gap: 10px; }
+.sheet .line { background: var(--lav-3); }
+@container app (min-width: 700px) {
+  .overlay { align-items: center; justify-content: center; }
+  .sheet { width: 560px; border-radius: 18px; max-height: 90%; }
+  .sheet.wide { width: 860px; }
+  .pay-grid { display: grid !important; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+}
+.pay-grid { display: flex; flex-direction: column; gap: 14px; }
+.pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.pad button { border: 0; background: var(--lav-3); border-radius: 12px; min-height: 50px; font-family: var(--f-display); font-size: 24px; font-weight: 600; }
+.pad button.k { font-family: var(--f-body); font-size: 15px; color: var(--gesso-dim); }
+.quick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.quick button { border: 0; background: var(--lav-4); border-radius: 10px; min-height: 42px; font-weight: 700; font-size: 13px; white-space: nowrap; }
+.screen { background: var(--lav); border-radius: 12px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.screen span { color: var(--gesso-dim); font-size: 12px; }
+.screen strong { font-family: var(--f-display); font-size: 30px; font-variant-numeric: tabular-nums; line-height: 1.1; white-space: nowrap; }
+.screen.ok strong { color: var(--verde); }
+.dots { display: flex; justify-content: center; gap: 14px; padding: 6px 0 2px; }
+.dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--gesso-dim); }
+.dots i.on { background: var(--ambra); border-color: var(--ambra); }
+.err { color: var(--rosso); text-align: center; font-size: 13px; min-height: 20px; }
+.motivo { background: var(--lav); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+.overlay.center { align-items: center; justify-content: center; }
+.dialog { background: var(--lav-2); border-radius: 18px; margin: auto 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 400px; }
+.dialog h2 { font-family: var(--f-display); font-size: 26px; margin: 0; line-height: 1.05; }
+.dialog p { margin: 0; color: var(--gesso-dim); white-space: pre-line; }
+.dialog.bad h2 { color: var(--rosso); }
+.az { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.az::-webkit-scrollbar { display: none; }
+.az button { flex: none; min-width: 36px; height: 36px; border-radius: 8px; border: 0; background: var(--lav-3); font-weight: 700; font-size: 12px; padding: 0 8px; }
+.az button[aria-pressed="true"] { background: var(--ambra); color: var(--ambra-ink); }
+.az button:disabled { opacity: .3; }
+.mgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.mbtn { border: 0; background: var(--lav-3); border-radius: 12px; padding: 0 12px; min-height: 48px; text-align: left; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.mbtn[aria-pressed="true"] { background: var(--gesso); color: var(--lav); }
+.files { display: flex; flex-direction: column; gap: 8px; }
+.file { border: 1px solid var(--lav-4); background: var(--lav); border-radius: 12px; padding: 10px 12px; text-align: left; display: flex; flex-direction: column; gap: 2px; min-height: 56px; }
+.file b { font-size: 14px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-weight: 600; word-break: break-all; }
+.file span { font-size: 12px; color: var(--gesso-dim); }
+.toast { position: absolute; left: 50%; bottom: 140px; transform: translateX(-50%); background: var(--gesso); color: var(--lav); padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 13px; z-index: 9; box-shadow: 0 8px 24px rgb(0 0 0 / .4); width: max-content; max-width: 88%; text-align: center; }
+@container app (min-width: 700px) { .toast { bottom: 30px; } }
+
+/* anteprima del report: carta bianca come la stampa */
+.paper { background: var(--carta); color: var(--inchiostro); border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 12px; font-size: 12px; box-shadow: 0 2px 10px rgb(0 0 0 / .3); }
+.paper header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; border-bottom: 2px solid var(--inchiostro); padding-bottom: 8px; flex-wrap: wrap; }
+.paper header b { font-family: var(--f-display); font-size: 22px; line-height: 1; }
+.paper header span { color: #555b57; }
+.paper h3 { margin: 4px 0 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #555b57; }
+.paper .tw { overflow-x: auto; }
+.paper table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.paper table.wide { min-width: 500px; }
+.paper .hint { display: none; font-size: 11px; color: #555b57; margin-top: -6px; }
+@container app (max-width: 560px) { .paper .hint { display: block; } }
+.paper td, .paper th { padding: 5px 6px; border-bottom: 1px solid #dcdcd4; text-align: left; vertical-align: top; }
+.paper th { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #555b57; }
+.paper td.r, .paper th.r { text-align: right; white-space: nowrap; }
+.paper tr.t td { font-weight: 700; border-bottom: 0; border-top: 2px solid var(--inchiostro); }
+.paper .na { color: #555b57; font-style: italic; }
+
+@container app (max-width: 360px) {
+  .tavoli { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tav { height: 46px; }
+  .paper { padding: 12px; }
+}
+@container app (max-width: 340px) {
+  .step button { width: 36px; height: 36px; }
+  .step output { min-width: 24px; }
+  .kpis { grid-template-columns: minmax(0, 1fr) !important; gap: 6px; }
+  .kpi { padding: 8px 12px; flex-direction: row; justify-content: space-between; align-items: baseline; }
+  .quick { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .line select { max-width: 120px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sheet { animation: up .18s ease-out; }
+  @keyframes up { from { transform: translateY(16px); opacity: .6; } }
+}
+</style>
+
+<div class="page">
+  <header class="intro">
+    <div class="eyebrow">Fase 0 · proposta di interfaccia</div>
+    <h1>Cassa v5</h1>
+    <p>Prototipo cliccabile della nuova interfaccia con dati di esempio, che copre tutte le funzioni della v4.2. Batti prodotti, incassa, chiudi la serata, apri un report (PIN di prova 1234). Non salva nulla: serve a decidere aspetto e flussi prima di scrivere il codice.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="Dispositivo">
+      <button id="dev-phone" data-dev="phone" aria-pressed="true">Telefono<span class="px"> · 375 px</span></button>
+      <button id="dev-tablet" data-dev="tablet" aria-pressed="false">Tablet<span class="px"> · 1024 px</span></button>
+    </div>
+    <button class="reset" id="reset">Ricomincia</button>
+    <span class="hint">Le note a lato cambiano con la schermata aperta.</span>
+  </div>
+
+  <div class="bench" id="bench">
+    <div class="stage" id="stage"><div class="frame phone" id="frame"><div class="app" id="app"></div></div></div>
+    <aside class="notes">
+      <section class="panel" id="notes" aria-live="polite"></section>
+      <details class="panel" open>
+        <summary><h3>Copertura della v4.2</h3></summary>
+        <div class="cov" id="cov"></div>
+      </details>
+      <section class="panel">
+        <h3>Decisioni da prendere</h3>
+        <div class="dec"><b>D8</b><div><strong>Quattro sezioni invece di sette schede</strong><span>Cassa, Conti (aperti e crediti), Storico, Gestione. Chiusura, Archivio, Prodotti, Soci e Dati stanno in Gestione, dietro un solo PIN valido finché non si esce.</span></div></div>
+        <div class="dec"><b>D9</b><div><strong>Extra con tastierino</strong><span>Importo libero e descrizione in un foglio, con quattro importi rapidi, al posto dei 20 pulsanti fissi da € 0,10 a € 2,00.</span></div></div>
+        <div class="dec"><b>D10</b><div><strong>Limiti noti corretti nella v5</strong><span>Colore del prodotto scelto da una tavolozza; un socio eliminato esce anche dai tavoli; eliminare prodotti e soci chiede conferma.</span></div></div>
+        <div class="dec"><b>D11</b><div><strong>Comanda su telefono come barra</strong><span>Una barra fissa mostra tavolo, articoli e totale; toccandola si apre la comanda completa. Su tablet resta sempre visibile.</span></div></div>
+        <div class="dec"><b>D12</b><div><strong>Chiusura in tre passi</strong><span>Riepilogo, Consegna, Conferma. Avvisi e conferme in finestre dell'app invece dei dialoghi del browser.</span></div></div>
+        <div class="dec"><b>D13</b><div><strong>Euro con la virgola</strong><span>€ 2,00 in tutta l'app e nei report, come si scrive in Italia (oggi € 2.00).</span></div></div>
+        <div class="dec"><b>D14</b><div><strong>Archivio separato dalla chiusura</strong><span>Le chiusure registrate hanno una voce propria in Gestione, con Report ed Elimina; l'avviso di memoria piena porta lì.</span></div></div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+const SWATCHES = ['#e0a13a', '#d2493c', '#3f9e6b', '#4aa3d8', '#ec8a2f', '#3fb5a5', '#9a7656', '#a77bd1', '#c9a227', '#a33a3a'];
+const CATEGORIE = ['Birre', 'Bibite', 'Snack', 'Bar', 'Extra'];
+const TAVOLI = ['Banco', 'Tavolo 1', 'Tavolo 2', 'Tavolo 3', 'Tavolo 4', 'Tavolo 5', 'Tavolo 6'];
+const GEN = 'Tavolo generico';
+const PROD0 = [
+  { id: 1, n: 'Dreher 66 cl', c: 'Birre', p: 2, col: '#e0a13a' },
+  { id: 2, n: 'Peroni 66 cl', c: 'Birre', p: 2, col: '#d2493c' },
+  { id: 3, n: 'Bavaria 66 cl', c: 'Birre', p: 2, col: '#3f9e6b' },
+  { id: 4, n: 'Dreher 33 cl', c: 'Birre', p: 1.1, col: '#c9a227' },
+  { id: 5, n: 'Peroni 33 cl', c: 'Birre', p: 1.2, col: '#ec8a2f' },
+  { id: 7, n: 'Coca Cola', c: 'Bibite', p: 1.5, col: '#a33a3a' },
+  { id: 8, n: 'Fanta', c: 'Bibite', p: 1.5, col: '#ec8a2f' },
+  { id: 12, n: 'Gassosa', c: 'Bibite', p: 1, col: '#3fb5a5' },
+  { id: 9, n: 'Acqua 500 ml', c: 'Bibite', p: 0.5, col: '#4aa3d8' },
+  { id: 10, n: 'Patatine', c: 'Snack', p: 1.5, col: '#c9a227' },
+  { id: 13, n: 'Salatini', c: 'Snack', p: 0.3, col: '#e0a13a' },
+  { id: 11, n: 'Caffè', c: 'Bar', p: 1, col: '#9a7656' }
+];
+
+function initial() {
+  const prods = PROD0.map(p => ({ ...p }));
+  const it = (pid, who, qty) => { const p = prods.find(x => x.id === pid); return { pid, name: p.n, price: p.p, qty, who }; };
+  return {
+    scr: 'cassa', table: 'Tavolo 3', active: 'Andrea', tutti: false, cat: 'Tutti',
+    club: 'Circolo di esempio', cassaName: 'Cassa', prods,
+    soci: ['Andrea', 'Chiara', 'Giuseppe', 'Luca', 'Marco', 'Matteo', 'Paolo', 'Roberto'],
+    seated: { 'Tavolo 3': ['Andrea', 'Chiara', 'Marco'], 'Tavolo 1': ['Luca'] },
+    tabs: {
+      'Tavolo 3': [it(1, 'Andrea', 1), it(7, 'Chiara', 1), it(10, 'Marco', 2), it(13, '', 2)],
+      'Tavolo 1': [it(1, 'Luca', 2), it(10, 'Luca', 1)],
+      'Tavolo 5': [it(11, '', 3)]
+    },
+    saved: { 'Tavolo 1': '21:48', 'Tavolo 5': '22:05' },
+    credits: [{ id: 'c1', table: 'Tavolo 2', date: '10/11', time: '23:40', items: [it(2, 'Paolo', 2), it(7, 'Roberto', 1)] }],
+    hist: [
+      { time: '22:10', table: 'Tavolo 4', who: 'Intero tavolo', items: '3× Peroni 66 cl, 2× Patatine', tot: 9 },
+      { time: '21:55', table: 'Tavolo 2', who: 'Matteo (parziale)', items: '1× Dreher 66 cl', tot: 2 },
+      { time: '21:30', table: 'Banco', who: 'Intero tavolo', items: '2× Caffè, 1× Acqua 500 ml', tot: 2.5 },
+      { time: '21:12', table: 'Tavolo 6', who: 'Giuseppe', items: '2× Bavaria 66 cl, 1× Salatini', tot: 4.3 }
+    ],
+    closures: [
+      { id: 'k2', date: '10/11/2026', time: '23:52', cassiere: 'Paolo', fondo: 50, incassato: 64.2, consegnato: 64.2, causale: 'Consegna serata', next: 50, crediti: 1,
+        sales: [
+          { time: '20:40', table: 'Banco', who: 'Intero tavolo', items: '4× Caffè', tot: 4 },
+          { time: '21:15', table: 'Tavolo 1', who: 'Intero tavolo', items: '6× Peroni 66 cl, 2× Patatine', tot: 15 },
+          { time: '22:30', table: 'Tavolo 4', who: 'Chiara', items: '3× Bavaria 66 cl', tot: 6 },
+          { time: '23:20', table: 'Tavolo 6', who: 'Intero tavolo', items: '10× Dreher 66 cl, 6× Patatine, 12× Salatini, 2,60 € di extra', tot: 39.2 }
+        ] },
+      { id: 'k1', date: '03/11/2026', time: '23:31', cassiere: 'Marco', fondo: 50, incassato: 48.5, consegnato: 48.5, causale: '', next: 50, crediti: 0, sales: null }
+    ],
+    fondo: 50, sheet: null, pay: null, extra: { amt: '', desc: '' }, az: '',
+    contiSeg: 'aperti', unlocked: false, gest: 'menu', step: 1, pin: '', pinErr: '', pinFor: null,
+    close: { cassiere: '', consegnato: '', causale: '' }, confirm: null, toast: '',
+    pform: null, fundDraft: '', report: null, fileMode: null, memFull: false, head: null
+  };
+}
+let S = initial();
+const app = document.getElementById('app');
+
+const eur = n => '€ ' + n.toFixed(2).replace('.', ',');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const num = s => parseFloat(String(s || '').replace(',', '.'));
+const sum = items => items.reduce((a, i) => a + i.price * i.qty, 0);
+const cart = () => S.tabs[S.table] || [];
+const seated = (t = S.table) => S.seated[t] || [];
+const occupied = t => seated(t).length > 0 || (S.tabs[t] || []).length > 0;
+const whoOf = i => i.who || GEN;
+const short = t => t === 'Banco' ? 'Banco' : t.replace('Tavolo ', '');
+const openTables = () => TAVOLI.filter(t => S.saved[t] && (S.tabs[t] || []).length);
+const incassato = () => S.hist.reduce((a, h) => a + h.tot, 0);
+const now = () => { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+const initialOf = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '')[0].toUpperCase();
+
+const ICON = {
+  cassa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 11h1a3 3 0 0 1 0 6h-1"/><path d="M5 8h12v9a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4Z"/><path d="M8 2v2M11 2v2M14 2v2"/></svg>',
+  conti: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+  storico: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>',
+  gestione: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  matita: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>'
+};
+
+// ---------- note per schermata ----------
+const NOTES = {
+  cassa: ['Cassa', [
+    'Tavoli in una griglia di sette caselle, sempre tutte visibili. Il puntino rosso indica un tavolo occupato (soci seduti o conto aperto).',
+    'Il nome dell\'associazione in alto si tocca per modificare l\'intestazione.',
+    '"Generico" è sempre disponibile: le voci battute senza socio restano del tavolo. TUTTI (verde) aggiunge un prodotto a ogni socio seduto.',
+    'Le categorie hanno il titolo "Prodotti" e vanno a capo. La battuta extra è il riquadro "Extra" in fondo (D9).',
+    'Su telefono la comanda è la barra sopra il menu (D11); su tablet è sempre a destra.'
+  ]],
+  comanda: ['Comanda', [
+    'Voci raggruppate per socio, con il subtotale di ognuno.',
+    'Quantità con − e +: a zero la voce sparisce. Il menu sotto il nome sposta la voce su un altro socio o sul tavolo.',
+    '"Salva conto" lascia il conto aperto e torna al Banco; "Incassa" apre il pagamento. "Svuota" chiede conferma.'
+  ]],
+  incasso: ['Incasso', [
+    'Si apre con tutto selezionato. Le scorciatoie selezionano il tavolo intero, la quota di un socio o niente.',
+    'Ogni voce mostra quante unità si pagano su quante ce ne sono ("1 di 2").',
+    'Contante con tastierino e importi rapidi; il resto si aggiorna subito. Su tablet voci e contante sono affiancati.',
+    'Toccare fuori non chiude il foglio, per non perdere la selezione: si chiude solo con ×.'
+  ]],
+  soci: ['Soci al tavolo', ['Filtro A–Z: le lettere senza soci sono spente.', 'Un tocco siede o alza un socio; il contatore è nel titolo.']],
+  extra: ['Battuta extra', ['Importo libero dal tastierino o con i tasti rapidi, descrizione facoltativa (es. "Corretto").', 'Rispetta il socio attivo e la modalità TUTTI.']],
+  pin: ['PIN', ['Il motivo della richiesta è scritto in chiaro.', 'Nessun suggerimento del PIN a schermo. Nel prototipo vale 1234.']],
+  conti: ['Conti', [
+    'Conti aperti e crediti nella stessa sezione, con due viste (D8). Sulla voce di menu: rosso = conti aperti, ambra = crediti.',
+    'Conti ordinati per tavolo. Incassa è l\'azione principale; Elimina è separata e chiede il PIN.',
+    'Crediti con il totale dei sospesi in cima e incasso anche parziale.'
+  ]],
+  storico: ['Storico', ['Vendite dall\'ultima chiusura, la più recente in alto, con chi ha pagato.', 'In cima fondo, incassato e totale in cassa; "Report della serata" apre l\'anteprima di stampa.']],
+  gestione: ['Gestione', ['Un solo ingresso con PIN per Chiusura, Archivio, Prodotti, Soci e Dati. Lo sblocco vale finché non si cambia sezione (D8).', '"Blocca" richiude subito l\'area.']],
+  chiusura: ['Chiusura cassa', [
+    'Tre passi con barra di avanzamento (D12): Riepilogo, Consegna, Conferma.',
+    'Il fondo cassa si modifica dal riepilogo (Imposta, Azzera con conferma).',
+    'I conti ancora aperti sono annunciati prima: diventeranno crediti.',
+    'Dopo la conferma una finestra dell\'app propone di stampare il report.'
+  ]],
+  archivio: ['Archivio chiusure', ['Ogni chiusura con data, cassiere, incasso e consegna; Report apre l\'anteprima di stampa.', 'Elimina chiede conferma e avvisa che si perdono anche le vendite archiviate.', 'Le chiusure precedenti alla v4.2 non hanno il dettaglio delle vendite (D14).']],
+  report: ['Report', ['Anteprima su carta bianca, come uscirà in stampa o in PDF.', 'Serata: fondo, incassato, totale in cassa, crediti, vendite e crediti in tabella. Chiusura: dati della consegna e vendite archiviate.', 'Nel prototipo il tasto di stampa mostra solo un avviso.']],
+  fondo: ['Fondo cassa', ['Importo dal tastierino, con la virgola.', 'Azzera chiede conferma; un fondo pari a zero è valido.']],
+  prodotti: ['Prodotti', ['Un tocco su un prodotto apre la modifica; "Nuovo prodotto" in cima.', 'Categorie fisse (Birre, Bibite, Snack, Bar, Extra) e colore scelto da una tavolozza (D10).']],
+  prodotto: ['Scheda prodotto', ['Nome, categoria, prezzo e colore. Il pulsante Salva è disattivato finché nome e prezzo non sono validi.', 'Elimina sta in fondo, separato, e chiede conferma.']],
+  socigest: ['Soci', ['Iscrizione rapida in cima: i doppioni vengono segnalati e ignorati.', 'Elenco alfabetico con filtro A–Z.', 'Eliminare un socio chiede conferma e lo toglie anche dai tavoli (D10).']],
+  dati: ['Dati', ['Esporta e Importa backup, Carica configurazione (soci e PIN), intestazione.', 'Memoria del dispositivo con un indicatore; l\'interruttore mostra l\'avviso di memoria piena.']],
+  file: ['Scelta del file', ['Nel prototipo si sceglie tra file di esempio, per vedere tutti i messaggi: riuscita, file sbagliato, configurazione non valida.', 'Un file non valido viene rifiutato per intero, senza modificare nulla.']],
+  intestazione: ['Intestazione', ['Nome dell\'associazione e della cassa. Un campo lasciato vuoto mantiene il valore precedente.']],
+  conferma: ['Finestra dell\'app', ['Conferme e avvisi in finestre dell\'app invece dei dialoghi del browser (D12): stesso aspetto ovunque, funzionano anche nella PWA su iPhone.', 'L\'azione distruttiva è in rosso e non è mai il pulsante evidenziato.']]
+};
+function noteKey() {
+  if (S.sheet) return S.sheet;
+  if (S.scr === 'gestione' && S.unlocked && S.gest !== 'menu') return { chiusura: 'chiusura', archivio: 'archivio', prodotti: 'prodotti', soci: 'socigest', dati: 'dati' }[S.gest];
+  return S.scr;
+}
+function renderNotes() {
+  const [t, pts] = NOTES[noteKey()] || NOTES.cassa;
+  document.getElementById('notes').innerHTML = `<h3>Questa schermata</h3><h2>${t}</h2><ul>${pts.map(p => `<li>${p}</li>`).join('')}</ul>`;
+}
+
+// ---------- copertura della v4.2 ----------
+const unlockTo = g => { S.scr = 'gestione'; S.unlocked = true; S.gest = g; S.step = 1; };
+const COV = [
+  ['Generali', [
+    ['Intestazione modificabile', 'Cassa', () => { S.scr = 'cassa'; S.head = { club: S.club, cassa: S.cassaName }; S.sheet = 'intestazione'; }],
+    ['Area protetta da PIN', 'Gestione', () => { S.scr = 'gestione'; S.unlocked = false; }],
+    ['PIN su Elimina conto e credito', 'Conti', () => { S.scr = 'conti'; S.contiSeg = 'aperti'; }],
+    ['Avviso di memoria piena', 'Dati', () => { unlockTo('dati'); S.memFull = true; }]
+  ]],
+  ['Cassa', [
+    ['Tavoli e tavolo occupato', 'Cassa', () => { S.scr = 'cassa'; }],
+    ['Soci al tavolo con filtro A–Z', 'Foglio', () => { S.scr = 'cassa'; S.sheet = 'soci'; S.az = ''; }],
+    ['Socio attivo, Tavolo Generico, TUTTI', 'Cassa', () => { S.scr = 'cassa'; }],
+    ['Categorie e prodotti', 'Cassa', () => { S.scr = 'cassa'; }],
+    ['Battuta extra con descrizione', 'Foglio', () => { S.scr = 'cassa'; S.extra = { amt: '', desc: '' }; S.sheet = 'extra'; }],
+    ['Comanda: quantità, riassegna, svuota', 'Comanda', () => { S.scr = 'cassa'; S.sheet = 'comanda'; }],
+    ['Salva conto e barra fissa su telefono', 'Cassa', () => { S.scr = 'cassa'; }]
+  ]],
+  ['Incasso', [
+    ['Per quantità, con preselezioni', 'Foglio', () => { S.scr = 'cassa'; if (!cart().length) S.table = 'Tavolo 1'; openPay('tab', S.table); }],
+    ['Contante, tasti rapidi, resto', 'Foglio', () => { S.scr = 'cassa'; if (!cart().length) S.table = 'Tavolo 1'; openPay('tab', S.table); }],
+    ['Chi ha pagato nello Storico', 'Storico', () => { S.scr = 'storico'; }]
+  ]],
+  ['Conti e crediti', [
+    ['Conti aperti ordinati, Modifica, Incassa', 'Conti', () => { S.scr = 'conti'; S.contiSeg = 'aperti'; }],
+    ['Crediti: totale, incasso parziale, Elimina', 'Conti', () => { S.scr = 'conti'; S.contiSeg = 'crediti'; }]
+  ]],
+  ['Chiusura cassa', [
+    ['Riepiloghi della serata', 'Chiusura', () => unlockTo('chiusura')],
+    ['Fondo cassa manuale, Azzera', 'Foglio', () => { unlockTo('chiusura'); S.fundDraft = ''; S.sheet = 'fondo'; }],
+    ['Cassiere, consegnato, causale', 'Chiusura', () => { unlockTo('chiusura'); S.step = 2; }],
+    ['Conferma: crediti, tavoli liberi, stampa', 'Chiusura', () => { unlockTo('chiusura'); S.step = 3; }],
+    ['Archivio con Report ed Elimina', 'Archivio', () => unlockTo('archivio')],
+    ['Esporta e Importa backup', 'Dati', () => unlockTo('dati')],
+    ['Carica configurazione', 'Foglio', () => { unlockTo('dati'); S.fileMode = 'config'; S.sheet = 'file'; }]
+  ]],
+  ['Prodotti, soci, storico', [
+    ['Prodotti: aggiungi, modifica, elimina', 'Prodotti', () => unlockTo('prodotti')],
+    ['Soci: iscrivi, elimina, ordine A–Z', 'Soci', () => unlockTo('soci')],
+    ['Vendite dall\'ultima chiusura', 'Storico', () => { S.scr = 'storico'; }],
+    ['Report della serata', 'Report', () => { S.scr = 'storico'; S.report = { kind: 'serata' }; S.sheet = 'report'; }]
+  ]]
+];
+function renderCov() {
+  let k = 0;
+  document.getElementById('cov').innerHTML = COV.map(([g, items]) => `<h4>${g}</h4>` + items.map(([t, w]) => `<button data-cov="${k++}"><span>${t}</span><span>${w} ›</span></button>`).join('')).join('');
+}
+const COV_FLAT = COV.flatMap(g => g[1]);
+document.getElementById('cov').addEventListener('click', e => {
+  const b = e.target.closest('[data-cov]'); if (!b) return;
+  S.sheet = null; S.confirm = null;
+  COV_FLAT[+b.dataset.cov][2]();
+  render();
+  const st = document.getElementById('stage').getBoundingClientRect();
+  if (st.top < 0 || st.top > innerHeight * 0.5) document.getElementById('stage').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+});
+
+// ---------- viste ----------
+function vNav() {
+  const nOpen = openTables().length, nCred = S.credits.length;
+  const b = (k, l, extra = '') => `<button data-act="scr" data-v="${k}" ${S.scr === k ? 'aria-current="page"' : ''}>${ICON[k]}${l}${extra}</button>`;
+  const badges = (nOpen || nCred) ? `<span class="badges">${nOpen ? `<span class="badge" aria-label="${nOpen} conti aperti">${nOpen}</span>` : ''}${nCred ? `<span class="badge amb" aria-label="${nCred} crediti">${nCred}</span>` : ''}</span>` : '';
+  return `<nav class="nav" aria-label="Sezioni">${b('cassa', 'Cassa')}${b('conti', 'Conti', badges)}${b('storico', 'Storico')}${b('gestione', 'Gestione')}</nav>`;
+}
+function vTop() {
+  return `<div class="top"><button class="club" data-act="editHead" aria-label="Modifica intestazione"><span class="t">${esc(S.club)} · ${esc(S.cassaName)}</span>${ICON.matita}</button><span class="clock">${now()}</span></div>`;
+}
+function vBanner() {
+  return S.memFull ? `<div class="banner" role="alert"><span>Memoria quasi piena: le prossime modifiche potrebbero non essere salvate.</span><button class="btn" data-act="goArchivio">Libera spazio</button></div>` : '';
+}
+function vCassa() {
+  const cats = ['Tutti', ...new Set(S.prods.map(p => p.c))];
+  const list = S.prods.filter(p => S.cat === 'Tutti' || p.c === S.cat);
+  const sit = seated();
+  return vTop() + vBanner() + `
+  <div class="group"><div class="sec-h"><span class="label">Tavolo</span><small><i></i>occupato</small></div>
+    <div class="tavoli" role="group" aria-label="Tavoli">${TAVOLI.map(t => `<button class="tav ${t === 'Banco' ? 'banco' : ''} ${occupied(t) ? 'occ' : ''}" data-act="table" data-v="${t}" aria-pressed="${S.table === t}" aria-label="${t}${occupied(t) ? ', occupato' : ''}"><span class="n">${short(t)}</span></button>`).join('')}</div></div>
+  <div class="group"><div class="sec-h"><span class="label">Chi ordina</span><small>${sit.length ? sit.length + ' seduti' : 'nessuno seduto'}</small></div>
+    <div class="wrap" role="group" aria-label="Chi ordina">
+      <button class="chip tutti" data-act="tutti" aria-pressed="${S.tutti}" ${sit.length ? '' : 'disabled'}>Tutti${S.tutti ? ' ✓' : ''}</button>
+      <button class="chip" data-act="active" data-v="" aria-pressed="${!S.tutti && S.active === ''}">Generico</button>
+      ${sit.map(m => `<button class="chip" data-act="active" data-v="${esc(m)}" aria-pressed="${!S.tutti && S.active === m}">${esc(m)}</button>`).join('')}
+      <button class="chip ghost" data-act="sheet" data-v="soci">+ Soci</button>
+    </div></div>
+  <div class="group"><div class="sec-h"><span class="label">Prodotti</span><small>${list.length} ${S.cat === 'Tutti' ? 'in listino' : 'in ' + S.cat}</small></div>
+    <div class="wrap" role="group" aria-label="Categorie">${cats.map(c => `<button class="chip" data-act="cat" data-v="${c}" aria-pressed="${S.cat === c}">${c}</button>`).join('')}</div></div>
+  <div class="prods">${list.map(p => `<button class="prod" data-act="add" data-v="${p.id}"><span class="cap" style="background:${p.col}"></span><span class="nm">${esc(p.n)}</span><span class="pr">${eur(p.p)}</span></button>`).join('')}
+    <button class="prod extra" data-act="sheet" data-v="extra"><span class="nm">Extra</span><span class="pr">importo libero</span></button></div>`;
+}
+function vComanda(inSheet) {
+  const c = cart();
+  const groups = {};
+  c.forEach((i, idx) => { (groups[whoOf(i)] = groups[whoOf(i)] || []).push([i, idx]); });
+  const order = [...seated().filter(m => groups[m]), ...Object.keys(groups).filter(k => !seated().includes(k) && k !== GEN), ...(groups[GEN] ? [GEN] : [])];
+  const opts = cur => [GEN, ...seated()].map(o => `<option ${o === cur ? 'selected' : ''}>${esc(o)}</option>`).join('');
+  const body = c.length ? order.map(w => `<div class="who"><h4>${esc(w)}<span>${eur(sum(groups[w].map(x => x[0])))}</span></h4>
+      ${groups[w].map(([i, idx]) => `<div class="line"><span class="nm">${esc(i.name)}</span><span class="sub"><span>${eur(i.price)}</span><select data-act="move" data-v="${idx}" aria-label="Assegna ${esc(i.name)} a">${opts(whoOf(i))}</select></span>
+      <span class="step"><button data-act="qty" data-v="${idx}" data-d="-1" aria-label="Togli un ${esc(i.name)}">−</button><output>${i.qty}</output><button data-act="qty" data-v="${idx}" data-d="1" aria-label="Aggiungi un ${esc(i.name)}">+</button></span></div>`).join('')}</div>`).join('')
+    : `<div class="empty">Nessuna voce. Tocca un prodotto per iniziare la comanda di ${S.table}.</div>`;
+  return `<div class="cmd">
+    <div class="cmd-head">${inSheet ? '<span class="label">Voci</span>' : `<h2>${S.table}</h2>`}${c.length ? '<button class="linkbtn" data-act="clear">Svuota</button>' : ''}</div>
+    <div class="cmd-list">${body}</div>
+    <div class="cmd-foot"><div class="tot"><span>${c.reduce((a, i) => a + i.qty, 0)} articoli</span><strong>${eur(sum(c))}</strong></div>
+      <div class="duo"><button class="btn sec" data-act="save" ${c.length ? '' : 'disabled'}>Salva conto</button><button class="btn pri" data-act="checkout" ${c.length ? '' : 'disabled'}>Incassa</button></div></div>
+  </div>`;
+}
+function vBar() {
+  const c = cart(); const n = c.reduce((a, i) => a + i.qty, 0);
+  const who = S.tutti ? 'tutti' : (S.active || 'generico');
+  return `<div class="cbar"><button class="sum" data-act="sheet" data-v="comanda" aria-label="Apri la comanda di ${S.table}"><small>${S.table} · ${esc(who)} · ${n} art. ▴</small><strong>${eur(sum(c))}</strong></button>
+    <button class="btn sec" data-act="save" ${c.length ? '' : 'disabled'}>Salva</button><button class="btn pri" data-act="checkout" ${c.length ? '' : 'disabled'}>Incassa</button></div>`;
+}
+function itemsByWho(items) {
+  const g = {}; items.forEach(i => { (g[whoOf(i)] = g[whoOf(i)] || []).push(`${i.qty}× ${i.name}`); });
+  return Object.entries(g).map(([w, l]) => `<span><b>${esc(w)}</b> · ${esc(l.join(', '))}</span>`).join('');
+}
+function vConti() {
+  const tabs = openTables();
+  const totCred = S.credits.reduce((a, c) => a + sum(c.items), 0);
+  const seg = `<div class="seg" style="background:var(--lav-2);align-self:flex-start" role="group" aria-label="Vista"><button data-act="contiSeg" data-v="aperti" aria-pressed="${S.contiSeg === 'aperti'}" style="color:var(--gesso)">Aperti (${tabs.length})</button><button data-act="contiSeg" data-v="crediti" aria-pressed="${S.contiSeg === 'crediti'}" style="color:var(--gesso)">Crediti (${S.credits.length})</button></div>`;
+  let body;
+  if (S.contiSeg === 'aperti') {
+    body = tabs.length ? `<div class="cards">${tabs.map(t => `<div class="card"><div class="card-h"><div><b>${t}</b> <span>dalle ${S.saved[t]}</span></div><strong>${eur(sum(S.tabs[t]))}</strong></div><div class="its">${itemsByWho(S.tabs[t])}</div>
+      <div class="acts"><button class="btn pri grow" data-act="payTab" data-v="${t}">Incassa</button><button class="btn sec" data-act="editTab" data-v="${t}">Modifica</button><button class="btn dang" data-act="delTab" data-v="${t}">Elimina</button></div></div>`).join('')}</div>`
+      : '<div class="empty">Nessun conto aperto. I conti salvati dalla Cassa compaiono qui.</div>';
+  } else {
+    body = `<div class="kpi hl"><span>Totale sospesi</span><strong>${eur(totCred)}</strong></div>` +
+      (S.credits.length ? `<div class="cards">${S.credits.map(c => `<div class="card"><div class="card-h"><div><b>${c.table}</b> <span>chiusura del ${c.date}, ${c.time}</span></div><strong>${eur(sum(c.items))}</strong></div><div class="its">${itemsByWho(c.items)}</div>
+      <div class="acts"><button class="btn pri grow" data-act="payCredit" data-v="${c.id}">Incassa credito</button><button class="btn dang" data-act="delCredit" data-v="${c.id}">Elimina</button></div></div>`).join('')}</div>` : '<div class="empty">Nessun credito da incassare. Alla chiusura i conti ancora aperti diventano crediti.</div>');
+  }
+  return vTop() + vBanner() + '<h1 class="title">Conti</h1>' + seg + body;
+}
+function vStorico() {
+  const tot = incassato();
+  return vTop() + vBanner() + `<h1 class="title">Storico</h1><p class="lead">Vendite dall'ultima chiusura.</p>
+  <div class="kpis"><div class="kpi"><span>Fondo</span><strong>${eur(S.fondo)}</strong></div><div class="kpi hl"><span>Incassato</span><strong>${eur(tot)}</strong></div><div class="kpi"><span>In cassa</span><strong>${eur(S.fondo + tot)}</strong></div></div>
+  <div class="hist">${S.hist.length ? S.hist.map(h => `<div class="hrow"><time>${h.time}</time><span class="w">${esc(h.who)} <span>· ${h.table}</span></span><strong>${eur(h.tot)}</strong><span class="d">${esc(h.items)}</span></div>`).join('') : '<div class="empty">Nessuna vendita dall\'ultima chiusura.</div>'}</div>
+  <button class="btn sec" data-act="openReport" data-v="serata">Report della serata</button>`;
+}
+function vPad(act) {
+  const pin = act === 'pinKey';
+  return `<div class="pad">${['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(d => `<button data-act="${act}" data-v="${d}">${d}</button>`).join('')}<button class="k" data-act="${act}" data-v="${pin ? 'C' : ','}" aria-label="${pin ? 'Cancella tutto' : 'Virgola'}">${pin ? 'C' : ','}</button><button data-act="${act}" data-v="0">0</button><button class="k" data-act="${act}" data-v="⌫" aria-label="Cancella l'ultima cifra">⌫</button></div>`;
+}
+function vGestione() {
+  if (!S.unlocked) {
+    return vTop() + `<div class="narrowcol" style="display:flex;flex-direction:column;gap:16px"><h1 class="title">Gestione</h1><div class="card" style="gap:14px"><div class="label">Area protetta</div><p style="margin:0;color:var(--gesso-dim)">Chiusura cassa, archivio, prodotti, soci e dati. Inserisci il PIN.</p>
+      <div class="dots" aria-label="${S.pin.length} cifre inserite">${[0, 1, 2, 3].map(i => `<i class="${i < S.pin.length ? 'on' : ''}"></i>`).join('')}</div><div class="err" role="alert">${S.pinErr}</div>${vPad('pinKey')}</div></div>`;
+  }
+  const back = '<button class="back" data-act="gest" data-v="menu">‹ Gestione</button>';
+  const wrap = h => `<div class="narrowcol" style="display:flex;flex-direction:column;gap:16px">${h}</div>`;
+  if (S.gest === 'menu') {
+    return vTop() + vBanner() + wrap(`<h1 class="title">Gestione</h1><div class="menu">
+      <button class="mi" data-act="gest" data-v="chiusura"><b>Chiusura cassa</b><span>Fine serata: fondo, consegna al presidente, conti in crediti</span><i>›</i></button>
+      <button class="mi" data-act="gest" data-v="archivio"><b>Archivio chiusure</b><span>${S.closures.length} chiusure registrate, con i report</span><i>›</i></button>
+      <button class="mi" data-act="gest" data-v="prodotti"><b>Prodotti</b><span>${S.prods.length} prodotti nel listino</span><i>›</i></button>
+      <button class="mi" data-act="gest" data-v="soci"><b>Soci</b><span>${S.soci.length} iscritti</span><i>›</i></button>
+      <button class="mi" data-act="gest" data-v="dati"><b>Dati</b><span>Backup, configurazione, intestazione, memoria</span><i>›</i></button></div>
+      <button class="btn sec" data-act="lock">Blocca</button>`);
+  }
+  if (S.gest === 'chiusura') return vBanner() + wrap(back + vChiusura());
+  if (S.gest === 'archivio') {
+    return vBanner() + wrap(back + `<h1 class="title">Archivio chiusure</h1>
+      ${S.closures.length ? S.closures.map(k => `<div class="card"><div class="card-h"><div><b>${k.date.slice(0, 5)}</b> <span>${k.time} · ${esc(k.cassiere || 'cassiere non indicato')}</span></div><strong>${eur(k.incassato)}</strong></div>
+        <div class="its"><span>Consegnato <b>${eur(k.consegnato)}</b> · fondo dopo <b>${eur(k.next)}</b></span><span>${k.sales ? k.sales.length + ' vendite archiviate' : 'Vendite non archiviate (chiusura precedente alla v4.2)'}${k.crediti ? ' · ' + (k.crediti === 1 ? '1 credito creato' : k.crediti + ' crediti creati') : ''}</span></div>
+        <div class="acts"><button class="btn sec grow" data-act="openReport" data-v="${k.id}">Report</button><button class="btn dang" data-act="delClosure" data-v="${k.id}">Elimina</button></div></div>`).join('')
+        : '<div class="empty">Nessuna chiusura registrata.</div>'}`);
+  }
+  if (S.gest === 'prodotti') {
+    const byCat = CATEGORIE.map(c => [c, S.prods.filter(p => p.c === c)]).filter(x => x[1].length);
+    return wrap(back + `<div class="sec-h"><h1 class="title">Prodotti</h1><button class="btn pri" data-act="newProd">+ Nuovo prodotto</button></div>
+      ${byCat.map(([c, ps]) => `<div class="group"><span class="label">${c}</span><div class="plist">${ps.map(p => `<button class="prow" data-act="editProd" data-v="${p.id}"><span class="cap" style="background:${p.col}"></span><span>${esc(p.n)}</span><strong>${eur(p.p)}</strong></button>`).join('')}</div></div>`).join('')}`);
+  }
+  if (S.gest === 'soci') {
+    const letters = [...new Set(S.soci.map(initialOf))];
+    const list = S.soci.filter(s => !S.az || initialOf(s) === S.az);
+    return wrap(back + `<h1 class="title">Soci</h1>
+      <div class="duo" style="grid-template-columns:minmax(0,1fr) auto"><div class="field"><label for="ns-nome">Nuovo socio</label><input id="ns-nome" placeholder="Nome e cognome" autocomplete="off"></div><button class="btn pri" style="align-self:end" data-act="addSocio">Iscrivi</button></div>
+      ${vAZ(letters)}
+      <div class="plist">${list.map(s => `<div class="prow socio"><span>${esc(s)}${Object.entries(S.seated).filter(([, m]) => m.includes(s)).map(([t]) => ` <small style="display:inline">· seduto al ${t}</small>`).join('')}</span><button class="linkbtn dang" data-act="delSocio" data-v="${esc(s)}">Elimina</button></div>`).join('')}</div>`);
+  }
+  const used = S.memFull ? 4.8 : 0.21;
+  return vBanner() + wrap(back + `<h1 class="title">Dati</h1>
+    <div class="group"><span class="label">Backup</span><div class="menu">
+      <button class="mi" data-act="exportBackup"><b>Esporta backup</b><span>Tutti i dati in un file JSON; il PIN solo come hash</span><i>↓</i></button>
+      <button class="mi" data-act="pickFile" data-v="backup"><b>Importa backup</b><span>Ripristina un file esportato, anche delle versioni precedenti</span><i>↑</i></button></div></div>
+    <div class="group"><span class="label">Configurazione</span><div class="menu">
+      <button class="mi" data-act="pickFile" data-v="config"><b>Carica configurazione</b><span>Soci e PIN da un file privato dell'associazione</span><i>↑</i></button>
+      <button class="mi" data-act="editHead"><b>Intestazione</b><span>${esc(S.club)} · ${esc(S.cassaName)}</span><i>›</i></button></div></div>
+    <div class="card"><div class="sec-h"><span class="label">Memoria del dispositivo</span><small>${used.toFixed(2).replace('.', ',')} MB di circa 5 MB</small></div>
+      <div class="meter ${S.memFull ? 'full' : ''}" role="meter" aria-valuemin="0" aria-valuemax="5" aria-valuenow="${used}" aria-label="Memoria usata"><i style="width:${Math.min(100, used / 5 * 100)}%"></i></div>
+      <span style="font-size:12px;color:var(--gesso-dim)">L'archivio delle chiusure cresce di circa 15 KB a serata. Quando la memoria si riempie: esporta un backup, poi elimina le chiusure vecchie.</span>
+      <button class="toggle" role="switch" aria-checked="${S.memFull}" data-act="memFull"><span>Mostra l'avviso di memoria piena (prova)</span><span class="sw2"></span></button></div>`);
+}
+function vAZ(letters) {
+  return `<div class="az" role="group" aria-label="Filtro per iniziale"><button data-act="az" data-v="" aria-pressed="${S.az === ''}">Tutti</button>${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(l => `<button data-act="az" data-v="${l}" aria-pressed="${S.az === l}" ${letters.includes(l) ? '' : 'disabled'}>${l}</button>`).join('')}</div>`;
+}
+function vChiusura() {
+  const inc = incassato();
+  const cons = S.close.consegnato === '' ? inc : (num(S.close.consegnato) || 0);
+  const next = Math.max(0, S.fondo + inc - cons);
+  const open = openTables();
+  const names = ['Riepilogo', 'Consegna', 'Conferma'];
+  const steps = `<div class="steps" aria-hidden="true">${[1, 2, 3].map(i => `<span class="${i <= S.step ? 'on' : ''}"></span>`).join('')}</div><div class="steps-l">${names.map((n, i) => `<span class="${i + 1 === S.step ? 'on' : ''}">${i + 1}. ${n}</span>`).join('')}</div>`;
+  if (S.step === 1) return `<h1 class="title">Chiusura cassa</h1>${steps}
+    <div class="kpis"><div class="kpi"><span>Fondo iniziale</span><strong>${eur(S.fondo)}</strong></div><div class="kpi hl"><span>Incassato</span><strong>${eur(inc)}</strong></div><div class="kpi"><span>In cassa</span><strong>${eur(S.fondo + inc)}</strong></div></div>
+    <button class="btn sec" data-act="openFondo" style="align-self:flex-start">Modifica fondo cassa</button>
+    ${open.length ? `<div class="note">${open.length === 1 ? '1 conto aperto' : open.length + ' conti aperti'} (${open.join(', ')}) ${open.length === 1 ? 'passerà' : 'passeranno'} nei crediti e i tavoli verranno liberati.</div>` : ''}
+    <button class="btn pri big" data-act="stepTo" data-v="2">Avanti</button>`;
+  if (S.step === 2) return `<h1 class="title">Chiusura cassa</h1>${steps}
+    <div class="field"><label for="ch-cassiere">Cassiere</label><input id="ch-cassiere" data-bind="close.cassiere" value="${esc(S.close.cassiere)}" placeholder="Nome di chi chiude" autocomplete="off"></div>
+    <div class="field"><label for="ch-consegnato">Consegnato al presidente</label><input id="ch-consegnato" data-bind="close.consegnato" value="${esc(S.close.consegnato)}" placeholder="${eur(inc)} (tutto l'incasso)" inputmode="decimal" autocomplete="off"></div>
+    <div class="field"><label for="ch-causale">Causale</label><input id="ch-causale" data-bind="close.causale" value="${esc(S.close.causale)}" placeholder="Facoltativa" autocomplete="off"></div>
+    <div class="duo"><button class="btn sec" data-act="stepTo" data-v="1">Indietro</button><button class="btn pri" data-act="stepTo" data-v="3">Avanti</button></div>`;
+  return `<h1 class="title">Chiusura cassa</h1>${steps}
+    <div class="card"><div class="its" style="gap:6px">
+      <span>Cassiere · <b>${esc(S.close.cassiere || 'non indicato')}</b></span>
+      <span>Incassato stasera · <b>${eur(inc)}</b></span>
+      <span>Consegnato al presidente · <b>${eur(cons)}</b></span>
+      ${S.close.causale ? `<span>Causale · <b>${esc(S.close.causale)}</b></span>` : ''}
+      <span>Conti che diventano crediti · <b>${open.length}</b></span></div>
+      <div class="screen ok"><span>Fondo per domani</span><strong>${eur(next)}</strong></div></div>
+    ${cons > S.fondo + inc ? '<div class="note err">Il consegnato supera il contante in cassa: il fondo per domani sarà zero.</div>' : ''}
+    <div class="duo"><button class="btn sec" data-act="stepTo" data-v="2">Indietro</button><button class="btn pri" data-act="doClose">Registra chiusura</button></div>`;
+}
+
+// ---------- fogli ----------
+function vSheet() {
+  if (!S.sheet) return '';
+  const head = t => `<div class="sheet-h"><h2>${t}</h2><button class="x" data-act="close" aria-label="Chiudi">×</button></div>`;
+  const ov = (inner, light) => `<div class="overlay" ${light ? 'data-act="bg"' : ''}>${inner}</div>`;
+  if (S.sheet === 'comanda') return ov(`<div class="sheet" role="dialog" aria-label="Comanda">${head(S.table)}${vComanda(true)}</div>`, true);
+  if (S.sheet === 'soci') {
+    const sit = seated(); const letters = [...new Set(S.soci.map(initialOf))];
+    const list = S.soci.filter(s => !S.az || initialOf(s) === S.az);
+    return ov(`<div class="sheet" role="dialog" aria-label="Soci al tavolo">${head(`Soci al ${S.table} (${sit.length})`)}<div class="sheet-b">${vAZ(letters)}
+      <div class="mgrid">${list.map(s => `<button class="mbtn" data-act="seat" data-v="${esc(s)}" aria-pressed="${sit.includes(s)}">${esc(s)}<span aria-hidden="true">${sit.includes(s) ? '✓' : '+'}</span></button>`).join('')}</div></div>
+      <div class="sheet-f"><button class="btn pri big" data-act="close">Fatto</button></div></div>`, true);
+  }
+  if (S.sheet === 'extra') {
+    const amt = num(S.extra.amt) || 0;
+    const target = S.tutti ? `uno per ognuno dei ${seated().length} soci` : (S.active || GEN);
+    return ov(`<div class="sheet" role="dialog" aria-label="Extra">${head('Extra')}<div class="sheet-b">
+      <div class="field"><label for="ex-desc">Descrizione (facoltativa)</label><input id="ex-desc" data-bind="extra.desc" value="${esc(S.extra.desc)}" placeholder="Es. Corretto" autocomplete="off"></div>
+      <div class="screen"><span>Importo · ${esc(target)}</span><strong>${eur(amt)}</strong></div>
+      <div class="quick" style="grid-template-columns:repeat(4,minmax(0,1fr))">${['0,50', '1,00', '1,50', '2,00'].map(v => `<button data-act="extraQuick" data-v="${v}">€ ${v}</button>`).join('')}</div>
+      ${vPad('extraKey')}</div>
+      <div class="sheet-f"><button class="btn pri big" data-act="extraAdd" ${amt > 0 ? '' : 'disabled'}>Aggiungi ${eur(amt)}</button></div></div>`);
+  }
+  if (S.sheet === 'pin') {
+    return ov(`<div class="sheet" role="dialog" aria-label="PIN richiesto">${head('PIN richiesto')}<div class="sheet-b">
+      <div class="motivo">${esc(S.pinFor.msg)}</div>
+      <div class="dots" aria-label="${S.pin.length} cifre inserite">${[0, 1, 2, 3].map(i => `<i class="${i < S.pin.length ? 'on' : ''}"></i>`).join('')}</div><div class="err" role="alert">${S.pinErr}</div>${vPad('pinKey')}</div></div>`);
+  }
+  if (S.sheet === 'incasso') return vPay();
+  if (S.sheet === 'fondo') {
+    const v = num(S.fundDraft);
+    return ov(`<div class="sheet" role="dialog" aria-label="Fondo cassa">${head('Fondo cassa')}<div class="sheet-b">
+      <div class="screen"><span>Attuale</span><strong>${eur(S.fondo)}</strong></div>
+      <div class="screen ok"><span>Nuovo fondo</span><strong>${S.fundDraft ? eur(v || 0) : '—'}</strong></div>
+      ${vPad('fundKey')}</div>
+      <div class="sheet-f"><button class="btn pri big" data-act="setFund" ${S.fundDraft !== '' && v >= 0 ? '' : 'disabled'}>Imposta ${S.fundDraft ? eur(v || 0) : ''}</button><button class="btn dang" data-act="resetFund">Azzera fondo</button></div></div>`);
+  }
+  if (S.sheet === 'prodotto') {
+    const f = S.pform; const ok = f.n.trim() && num(f.p) > 0;
+    return ov(`<div class="sheet" role="dialog" aria-label="Prodotto">${head(f.id ? 'Modifica prodotto' : 'Nuovo prodotto')}<div class="sheet-b">
+      <div class="field"><label for="pf-nome">Nome</label><input id="pf-nome" data-bind="pform.n" data-live="1" value="${esc(f.n)}" placeholder="Es. Spritz" autocomplete="off"></div>
+      <div class="field"><label for="pf-prezzo">Prezzo in euro</label><input id="pf-prezzo" data-bind="pform.p" data-live="1" value="${esc(f.p)}" placeholder="0,00" inputmode="decimal" autocomplete="off"></div>
+      <div class="field"><span class="flabel">Categoria</span><div class="wrap">${CATEGORIE.map(c => `<button class="chip" data-act="pfCat" data-v="${c}" aria-pressed="${f.c === c}">${c}</button>`).join('')}</div></div>
+      <div class="field"><span class="flabel">Colore</span><div class="swatches">${SWATCHES.map(c => `<button class="sw" style="background:${c}" data-act="pfCol" data-v="${c}" aria-pressed="${f.col === c}" aria-label="Colore ${c}"></button>`).join('')}</div></div>
+      <div class="prod" style="max-width:180px;pointer-events:none" aria-hidden="true"><span class="cap" style="background:${f.col}"></span><span class="nm">${esc(f.n || 'Anteprima')}</span><span class="pr">${eur(num(f.p) || 0)}</span></div>
+      </div>
+      <div class="sheet-f"><button class="btn pri big" data-act="saveProd" ${ok ? '' : 'disabled'}>Salva</button>${f.id ? '<button class="btn dang" data-act="delProd">Elimina prodotto</button>' : ''}</div></div>`);
+  }
+  if (S.sheet === 'intestazione') {
+    return ov(`<div class="sheet" role="dialog" aria-label="Intestazione">${head('Intestazione')}<div class="sheet-b">
+      <div class="field"><label for="in-club">Associazione</label><input id="in-club" data-bind="head.club" value="${esc(S.head.club)}" autocomplete="off"></div>
+      <div class="field"><label for="in-cassa">Nome della cassa</label><input id="in-cassa" data-bind="head.cassa" value="${esc(S.head.cassa)}" autocomplete="off"></div></div>
+      <div class="sheet-f"><div class="duo eq"><button class="btn sec" data-act="close">Annulla</button><button class="btn pri" data-act="saveHead">Salva</button></div></div></div>`);
+  }
+  if (S.sheet === 'file') {
+    const files = [
+      ['backup', 'backup_cassa_2026-11-10.json', 'Backup v4.2 · 10/11/2026 · 128 KB'],
+      ['backup-v3', 'backup_cassa_2026-09-01.json', 'Backup v3 · senza crediti né PIN'],
+      ['config', 'config-cassa.json', 'Configurazione · 3 soci e PIN'],
+      ['config-bad', 'config-errata.json', 'Configurazione · PIN di 3 cifre']
+    ];
+    return ov(`<div class="sheet" role="dialog" aria-label="Scegli il file">${head(S.fileMode === 'config' ? 'Carica configurazione' : 'Importa backup')}<div class="sheet-b">
+      <p style="margin:0;color:var(--gesso-dim);font-size:13px">Nell'app si apre la scelta dei file del dispositivo. Qui scegli un file di esempio per vedere l'esito.</p>
+      <div class="files">${files.map(([k, n, d]) => `<button class="file" data-act="chooseFile" data-v="${k}"><b>${n}</b><span>${d}</span></button>`).join('')}</div></div></div>`);
+  }
+  if (S.sheet === 'report') return vReport();
+  if (S.sheet === 'conferma') {
+    const c = S.confirm;
+    return `<div class="overlay center"><div class="dialog ${c.bad ? 'bad' : ''}" role="alertdialog" aria-label="${esc(c.title)}"><h2>${esc(c.title)}</h2><p>${esc(c.text)}</p>
+      ${c.no ? `<div class="duo eq"><button class="btn sec" data-act="close">${esc(c.no)}</button><button class="btn ${c.danger ? 'dang' : 'pri'}" data-act="confirmYes">${esc(c.yes)}</button></div>`
+        : `<button class="btn pri big" data-act="confirmYes">${esc(c.yes)}</button>`}</div></div>`;
+  }
+  return '';
+}
+function payItems() { return S.pay.src === 'credit' ? S.credits.find(c => c.id === S.pay.ref).items : S.tabs[S.pay.ref]; }
+function vPay() {
+  const items = payItems();
+  const due = items.reduce((a, i, k) => a + i.price * S.pay.sel[k], 0);
+  const cash = num(S.pay.cash) || 0;
+  const members = [...new Set(items.map(i => i.who).filter(Boolean))];
+  const title = S.pay.src === 'credit' ? `Credito · ${S.credits.find(c => c.id === S.pay.ref).table}` : `Incasso · ${S.pay.ref}`;
+  return `<div class="overlay"><div class="sheet wide" role="dialog" aria-label="${title}"><div class="sheet-h"><h2>${title}</h2><button class="x" data-act="close" aria-label="Chiudi">×</button></div>
+    <div class="sheet-b"><div class="pay-grid">
+      <div class="group">
+        <div class="sec-h"><span class="label">Chi paga</span>${S.pay.preset === 'CUSTOM' ? '<small style="color:var(--ambra)">selezione manuale</small>' : ''}</div>
+        <div class="row"><button class="chip" data-act="preset" data-v="ALL" aria-pressed="${S.pay.preset === 'ALL'}">Tavolo intero</button>
+          ${members.map(m => `<button class="chip" data-act="preset" data-v="${esc(m)}" aria-pressed="${S.pay.preset === m}">${esc(m)}</button>`).join('')}
+          <button class="chip ghost" data-act="preset" data-v="NONE">Niente</button></div>
+        ${items.map((i, k) => `<div class="line"><span class="nm">${esc(i.name)}</span><span class="sub"><b>${esc(whoOf(i))}</b><span>${eur(i.price)}</span><span>${S.pay.sel[k]} di ${i.qty}</span></span>
+          <span class="step"><button data-act="psel" data-v="${k}" data-d="-1" aria-label="Paga un ${esc(i.name)} in meno">−</button><output>${S.pay.sel[k]}</output><button data-act="psel" data-v="${k}" data-d="1" aria-label="Paga un ${esc(i.name)} in più">+</button></span></div>`).join('')}
+      </div>
+      <div class="group">
+        <div class="screen"><span>Da incassare</span><strong>${eur(due)}</strong></div>
+        <div class="screen"><span>Contante ricevuto</span><strong>${S.pay.cash ? eur(cash) : '—'}</strong></div>
+        <div class="quick"><button data-act="cashQuick" data-v="exact">Esatto</button>${[5, 10, 20, 50].map(v => `<button data-act="cashQuick" data-v="${v}">€ ${v}</button>`).join('')}</div>
+        ${vPad('cashKey')}
+        <div class="screen ok"><span>${S.pay.cash && cash < due ? 'Mancano' : 'Resto'}</span><strong>${eur(S.pay.cash && cash < due ? due - cash : Math.max(0, cash - due))}</strong></div>
+      </div></div></div>
+    <div class="sheet-f"><button class="btn pri big" data-act="payConfirm" ${due > 0 ? '' : 'disabled'}>${due > 0 ? 'Conferma incasso ' + eur(due) : 'Seleziona cosa incassare'}</button></div></div></div>`;
+}
+function vReport() {
+  const r = S.report;
+  const rows = (pairs) => `<div class="tw"><table><tbody>${pairs.map(([a, b]) => `<tr><td>${a}</td><td class="r">${b}</td></tr>`).join('')}</tbody></table></div>`;
+  const salesT = sales => sales.length ? `<span class="hint">Scorri la tabella di lato per vedere voci e totali →</span><div class="tw"><table class="wide"><thead><tr><th>Ora</th><th>Tavolo</th><th>Pagato da</th><th>Voci</th><th class="r">Totale</th></tr></thead><tbody>
+      ${sales.map(s => `<tr><td>${s.time}</td><td>${s.table}</td><td>${esc(s.who)}</td><td>${esc(s.items)}</td><td class="r">${eur(s.tot)}</td></tr>`).join('')}
+      <tr class="t"><td colspan="4">Totale</td><td class="r">${eur(sales.reduce((a, s) => a + s.tot, 0))}</td></tr></tbody></table></div>` : '<p class="na">Nessuna vendita.</p>';
+  let title, sub, body;
+  if (r.kind === 'serata') {
+    const inc = incassato(), cred = S.credits.reduce((a, c) => a + sum(c.items), 0);
+    title = 'Rendiconto della serata'; sub = '12/11/2026 · ' + now();
+    body = rows([['Fondo cassa iniziale', eur(S.fondo)], ['Totale incassato', eur(inc)], ['Totale in cassa', eur(S.fondo + inc)], ['Crediti da incassare', eur(cred)]]) +
+      `<h3>Vendite</h3>${salesT([...S.hist].reverse())}<h3>Crediti</h3>` +
+      (S.credits.length ? `<div class="tw"><table class="wide"><thead><tr><th>Tavolo</th><th>Data</th><th>Voci</th><th class="r">Totale</th></tr></thead><tbody>${S.credits.map(c => `<tr><td>${c.table}</td><td>${c.date}</td><td>${esc(c.items.map(i => i.qty + '× ' + i.name).join(', '))}</td><td class="r">${eur(sum(c.items))}</td></tr>`).join('')}</tbody></table></div>` : '<p class="na">Nessun credito.</p>');
+  } else {
+    const k = S.closures.find(x => x.id === r.id);
+    title = 'Chiusura cassa'; sub = k.date + ' · ' + k.time;
+    body = rows([['Cassiere', esc(k.cassiere || '—')], ['Fondo cassa iniziale', eur(k.fondo)], ['Totale incassato', eur(k.incassato)], ['Totale in cassa', eur(k.fondo + k.incassato)], ['Consegnato al presidente', eur(k.consegnato)], ['Fondo cassa per il giorno dopo', eur(k.next)], ['Causale', esc(k.causale || '—')], ['Conti passati nei crediti', String(k.crediti)]]) +
+      `<h3>Vendite della serata</h3>` + (k.sales ? salesT(k.sales) : '<p class="na">Dettaglio non disponibile: questa chiusura è precedente alla v4.2 e non ha le vendite archiviate.</p>');
+  }
+  return `<div class="overlay"><div class="sheet wide" role="dialog" aria-label="Report">${`<div class="sheet-h"><h2>Report</h2><button class="x" data-act="close" aria-label="Chiudi">×</button></div>`}
+    <div class="sheet-b"><article class="paper"><header><b>${esc(S.club)}</b><span>${esc(S.cassaName)}</span></header>
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline"><strong style="font-size:15px">${title}</strong><span style="color:#555b57">${sub}</span></div>${body}</article></div>
+    <div class="sheet-f"><button class="btn pri big" data-act="toast" data-v="Nell'app si apre la stampa del browser: scegli la stampante o Salva come PDF.">Stampa o salva PDF</button></div></div></div>`;
+}
+
+function render() {
+  const cassa = S.scr === 'cassa';
+  const main = cassa ? vCassa() : S.scr === 'conti' ? vConti() : S.scr === 'storico' ? vStorico() : vGestione();
+  const focusId = document.activeElement && app.contains(document.activeElement) ? document.activeElement.id : null;
+  app.innerHTML = `<div class="shell ${cassa ? '' : 'full'}"><main class="main">${main}</main>
+    ${cassa ? `<div class="bar">${vBar()}</div><aside class="side" aria-label="Comanda">${vComanda(false)}</aside>` : ''}
+    ${vNav()}</div>${vSheet()}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}`;
+  if (focusId) { const el = document.getElementById(focusId); if (el) { el.focus(); const v = el.value; if (el.setSelectionRange) try { el.setSelectionRange(v.length, v.length); } catch (e) {} } }
+  renderNotes();
+}
+
+// ---------- azioni ----------
+let toastTimer;
+function toast(msg) { S.toast = msg; clearTimeout(toastTimer); toastTimer = setTimeout(() => { S.toast = ''; render(); }, 2800); }
+function info(title, text, opts = {}) { S.confirm = { title, text, yes: opts.yes || 'OK', no: opts.no || null, danger: !!opts.danger, bad: !!opts.bad, run: opts.run || null }; S.sheet = 'conferma'; }
+function addItem(p, who) {
+  const c = S.tabs[S.table] = S.tabs[S.table] || [];
+  const ex = c.find(i => i.pid === p.id && i.who === who);
+  if (ex) ex.qty++; else c.push({ pid: p.id, name: p.n, price: p.p, qty: 1, who });
+}
+const whoTargets = () => S.tutti && seated().length ? seated() : [S.active];
+function openPay(src, ref) {
+  S.pay = { src, ref, preset: 'ALL', cash: '', sel: [] };
+  S.pay.sel = (src === 'credit' ? S.credits.find(c => c.id === ref).items : S.tabs[ref]).map(i => i.qty);
+  S.sheet = 'incasso';
+}
+function askPin(msg, run) { S.pinFor = { msg, run }; S.pin = ''; S.pinErr = ''; S.sheet = 'pin'; }
+function pinKey(v) {
+  if (v === 'C') S.pin = ''; else if (v === '⌫') S.pin = S.pin.slice(0, -1); else if (S.pin.length < 4) S.pin += v;
+  S.pinErr = '';
+  if (S.pin.length === 4) {
+    if (S.pin === '1234') {
+      S.pin = '';
+      if (S.sheet === 'pin') { const run = S.pinFor.run; S.sheet = null; S.pinFor = null; run(); } else S.unlocked = true;
+    } else { S.pin = ''; S.pinErr = 'PIN errato. Riprova.'; }
+  }
+}
+function numKey(cur, v) {
+  if (v === '⌫') return cur.slice(0, -1);
+  if (v === ',') return cur.includes(',') ? cur : (cur || '0') + ',';
+  if (cur.includes(',') && cur.split(',')[1].length >= 2) return cur;
+  if (cur.replace(',', '').length >= 6) return cur;
+  return (cur === '0' ? '' : cur) + v;
+}
+function payConfirm() {
+  const items = payItems();
+  const paid = [], rest = [];
+  items.forEach((i, k) => { const s = S.pay.sel[k]; if (s > 0) paid.push({ ...i, qty: s }); if (i.qty - s > 0) rest.push({ ...i, qty: i.qty - s }); });
+  const tot = sum(paid);
+  const payers = [...new Set(paid.map(whoOf))];
+  const credit = S.pay.src === 'credit' ? S.credits.find(c => c.id === S.pay.ref) : null;
+  let label;
+  if (credit) label = 'Credito del ' + credit.date;
+  else if (!rest.length) label = 'Intero tavolo';
+  else if (payers.length > 1) label = 'Parziale';
+  else label = rest.some(i => whoOf(i) === payers[0]) ? payers[0] + ' (parziale)' : payers[0];
+  const table = credit ? credit.table : S.pay.ref;
+  S.hist.unshift({ time: now(), table, who: label, items: paid.map(i => `${i.qty}× ${i.name}`).join(', '), tot });
+  if (credit) {
+    if (rest.length) credit.items = rest; else S.credits = S.credits.filter(x => x !== credit);
+  } else {
+    const t = S.pay.ref;
+    if (rest.length) {
+      S.tabs[t] = rest;
+      S.seated[t] = seated(t).filter(m => !payers.includes(m) || rest.some(i => i.who === m));
+      if (S.table === t && S.active && !S.seated[t].includes(S.active)) S.active = S.seated[t][0] || '';
+    } else {
+      delete S.tabs[t]; delete S.seated[t]; delete S.saved[t];
+      if (S.table === t) { S.table = 'Banco'; S.active = seated('Banco')[0] || ''; S.tutti = false; }
+    }
+  }
+  const cash = num(S.pay.cash) || 0;
+  S.sheet = null; S.pay = null;
+  toast(`${label}: incassati ${eur(tot)}${cash > tot ? ' · resto ' + eur(cash - tot) : ''}`);
+}
+function setPath(path, val) { const [a, b] = path.split('.'); S[a][b] = val; }
+
+const ACT = {
+  scr: v => { S.scr = v; if (v !== 'gestione') { S.unlocked = false; S.gest = 'menu'; S.step = 1; } S.pin = ''; S.pinErr = ''; },
+  table: v => { S.table = v; S.active = seated(v)[0] || ''; S.tutti = false; },
+  active: v => { S.active = v; S.tutti = false; },
+  tutti: () => { S.tutti = !S.tutti; },
+  cat: v => { S.cat = v; },
+  add: v => { const p = S.prods.find(x => x.id === +v); whoTargets().forEach(w => addItem(p, w)); },
+  qty: (v, d) => { const c = cart(); c[+v].qty += +d; if (c[+v].qty <= 0) c.splice(+v, 1); },
+  clear: () => info('Svuotare la comanda?', `Si tolgono tutte le voci di ${S.table}.`, { yes: 'Svuota', no: 'Annulla', danger: true, run: () => { S.tabs[S.table] = []; } }),
+  save: () => { const t = S.table; S.saved[t] = S.saved[t] || now(); S.sheet = null; S.table = 'Banco'; S.active = seated('Banco')[0] || ''; S.tutti = false; toast(`Conto del ${t} salvato.`); },
+  checkout: () => openPay('tab', S.table),
+  sheet: v => { S.sheet = v; S.az = ''; if (v === 'extra') S.extra = { amt: '', desc: '' }; },
+  close: () => { S.sheet = null; },
+  seat: v => { const t = S.table; const s = seated(t); S.seated[t] = s.includes(v) ? s.filter(x => x !== v) : [...s, v]; if (!S.seated[t].includes(S.active)) S.active = S.seated[t][0] || ''; },
+  az: v => { S.az = v; },
+  extraKey: v => { S.extra.amt = numKey(S.extra.amt, v); },
+  extraQuick: v => { S.extra.amt = v; },
+  extraAdd: () => {
+    const amt = num(S.extra.amt); const name = S.extra.desc.trim().toUpperCase() || 'EXTRA';
+    whoTargets().forEach(w => { (S.tabs[S.table] = S.tabs[S.table] || []).push({ pid: 'x' + Math.random(), name, price: amt, qty: 1, who: w }); });
+    S.sheet = null; toast(`${name} da ${eur(amt)} aggiunto.`);
+  },
+  preset: v => { const items = payItems(); S.pay.preset = v === 'NONE' ? 'CUSTOM' : v; S.pay.cash = ''; S.pay.sel = items.map(i => v === 'ALL' ? i.qty : v === 'NONE' ? 0 : (i.who === v ? i.qty : 0)); },
+  psel: (v, d) => { const items = payItems(); S.pay.sel[+v] = Math.min(items[+v].qty, Math.max(0, S.pay.sel[+v] + +d)); S.pay.preset = 'CUSTOM'; S.pay.cash = ''; },
+  cashKey: v => { S.pay.cash = numKey(S.pay.cash, v); },
+  cashQuick: v => { if (v === 'exact') { const items = payItems(); S.pay.cash = items.reduce((a, i, k) => a + i.price * S.pay.sel[k], 0).toFixed(2).replace('.', ','); } else S.pay.cash = v; },
+  payConfirm,
+  contiSeg: v => { S.contiSeg = v; },
+  payTab: v => openPay('tab', v),
+  payCredit: v => openPay('credit', v),
+  editTab: v => { S.scr = 'cassa'; S.table = v; S.active = seated(v)[0] || ''; },
+  delTab: v => askPin(`Elimina il conto del ${v} (${eur(sum(S.tabs[v]))}).`, () => { delete S.tabs[v]; delete S.saved[v]; delete S.seated[v]; toast(`Conto del ${v} eliminato.`); }),
+  delCredit: v => { const c = S.credits.find(x => x.id === v); askPin(`Elimina il credito del ${c.table} del ${c.date} (${eur(sum(c.items))}).`, () => { S.credits = S.credits.filter(x => x.id !== v); toast('Credito eliminato.'); }); },
+  pinKey,
+  gest: v => { S.gest = v; S.step = 1; S.az = ''; },
+  lock: () => { S.unlocked = false; S.gest = 'menu'; },
+  stepTo: v => { S.step = +v; },
+  openFondo: () => { S.fundDraft = ''; S.sheet = 'fondo'; },
+  fundKey: v => { S.fundDraft = numKey(S.fundDraft, v); },
+  setFund: () => { S.fondo = Math.round((num(S.fundDraft) || 0) * 100) / 100; S.sheet = null; toast(`Fondo cassa impostato a ${eur(S.fondo)}.`); },
+  resetFund: () => info('Azzerare il fondo cassa?', `Il fondo passa da ${eur(S.fondo)} a ${eur(0)}.`, { yes: 'Azzera', no: 'Annulla', danger: true, run: () => { S.fondo = 0; toast('Fondo cassa azzerato.'); } }),
+  doClose: () => {
+    const open = openTables();
+    const inc = incassato();
+    const cons = S.close.consegnato === '' ? inc : (num(S.close.consegnato) || 0);
+    const next = Math.max(0, S.fondo + inc - cons);
+    const id = 'k' + Date.now();
+    S.closures.unshift({ id, date: '12/11/2026', time: now(), cassiere: S.close.cassiere, fondo: S.fondo, incassato: inc, consegnato: cons, causale: S.close.causale, next, crediti: open.length, sales: [...S.hist].reverse() });
+    open.forEach((t, k) => { S.credits.unshift({ id: 'n' + k + Date.now(), table: t, date: '12/11', time: S.saved[t], items: S.tabs[t] }); delete S.tabs[t]; });
+    S.fondo = next; S.hist = []; S.saved = {}; S.seated = {}; S.table = 'Banco'; S.active = ''; S.tutti = false;
+    S.close = { cassiere: '', consegnato: '', causale: '' }; S.step = 1; S.gest = 'menu';
+    info('Chiusura registrata', `${open.length === 1 ? '1 conto aperto è passato' : open.length + ' conti aperti sono passati'} nei crediti e i tavoli sono liberi.\nNuovo fondo cassa: ${eur(next)}.\n\nVuoi stampare il report della chiusura?`,
+      { yes: 'Stampa report', no: 'Non ora', run: () => { S.report = { kind: 'chiusura', id }; S.sheet = 'report'; } });
+  },
+  confirmYes: () => { const run = S.confirm && S.confirm.run; S.sheet = null; if (run) run(); },
+  openReport: v => { S.report = v === 'serata' ? { kind: 'serata' } : { kind: 'chiusura', id: v }; S.sheet = 'report'; },
+  delClosure: v => { const k = S.closures.find(x => x.id === v); info(`Eliminare la chiusura del ${k.date.slice(0, 5)}?`, k.sales ? `Si perdono anche le ${k.sales.length} vendite archiviate. Conviene esportare un backup prima.` : 'La chiusura viene tolta dall\'archivio.', { yes: 'Elimina', no: 'Annulla', danger: true, run: () => { S.closures = S.closures.filter(x => x.id !== v); toast('Chiusura eliminata.'); } }); },
+  goArchivio: () => unlockTo('archivio'),
+  newProd: () => { S.pform = { id: null, n: '', p: '', c: 'Bar', col: SWATCHES[3] }; S.sheet = 'prodotto'; },
+  editProd: v => { const p = S.prods.find(x => x.id === +v); S.pform = { id: p.id, n: p.n, p: p.p.toFixed(2).replace('.', ','), c: p.c, col: p.col }; S.sheet = 'prodotto'; },
+  pfCat: v => { S.pform.c = v; },
+  pfCol: v => { S.pform.col = v; },
+  saveProd: () => {
+    const f = S.pform; const data = { n: f.n.trim(), p: Math.round(num(f.p) * 100) / 100, c: f.c, col: f.col };
+    if (f.id) Object.assign(S.prods.find(x => x.id === f.id), data); else S.prods.push({ id: Date.now(), ...data });
+    S.sheet = null; toast(`${data.n} salvato.`);
+  },
+  delProd: () => { const f = S.pform; info(`Eliminare ${f.n}?`, 'Il prodotto sparisce dal listino. Le voci già battute restano nei conti.', { yes: 'Elimina', no: 'Annulla', danger: true, run: () => { S.prods = S.prods.filter(x => x.id !== f.id); toast(`${f.n} eliminato.`); } }); },
+  addSocio: () => {
+    const el = document.getElementById('ns-nome'); const n = el && el.value.trim().replace(/\s+/g, ' ');
+    if (!n) { toast('Scrivi il nome del socio.'); return; }
+    if (S.soci.some(s => s.toLocaleLowerCase('it') === n.toLocaleLowerCase('it'))) { toast(`${n} è già iscritto.`); return; }
+    S.soci = [...S.soci, n].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' })); toast(`${n} iscritto.`);
+  },
+  delSocio: v => {
+    const at = Object.entries(S.seated).filter(([, m]) => m.includes(v)).map(([t]) => t);
+    info(`Eliminare ${v}?`, at.length ? `${v} è seduto al ${at.join(', ')}: verrà tolto anche dal tavolo. Le voci già battute restano nel conto.` : `${v} viene tolto dall'anagrafica.`,
+      { yes: 'Elimina', no: 'Annulla', danger: true, run: () => { S.soci = S.soci.filter(s => s !== v); at.forEach(t => { S.seated[t] = S.seated[t].filter(m => m !== v); }); if (S.active === v) S.active = seated()[0] || ''; toast(`${v} eliminato.`); } });
+  },
+  editHead: () => { S.head = { club: S.club, cassa: S.cassaName }; S.sheet = 'intestazione'; },
+  saveHead: () => { S.club = S.head.club.trim() || S.club; S.cassaName = S.head.cassa.trim() || S.cassaName; S.sheet = null; toast('Intestazione salvata.'); },
+  exportBackup: () => info('Backup pronto', 'File backup_cassa_2026-11-12.json\n\nContiene prodotti, soci, conti aperti, crediti, storico, chiusure archiviate, fondo cassa, intestazione e il PIN solo come hash.\n\nConservalo in un posto privato: contiene i nomi dei soci.', { yes: 'OK' }),
+  pickFile: v => { S.fileMode = v; S.sheet = 'file'; },
+  chooseFile: v => {
+    if (S.fileMode === 'backup') {
+      if (v.startsWith('config')) return info('File non adatto', 'Questo è un file di configurazione, non un backup.\nUsa "Carica configurazione".', { bad: true });
+      const v3 = v === 'backup-v3';
+      return info('Sostituire i dati attuali?', `Il backup ${v3 ? 'del 01/09/2026 (v3)' : 'del 10/11/2026'} sostituisce prodotti, soci, conti, storico e chiusure di questo dispositivo.${v3 ? ' Non contiene crediti né PIN: i crediti restano vuoti e il PIN del dispositivo non cambia.' : ''}`,
+        { yes: 'Ripristina', no: 'Annulla', danger: true, run: () => info('Backup ripristinato', 'I dati del backup sono ora su questo dispositivo.', {}) });
+    }
+    if (v.startsWith('backup')) return info('Configurazione non caricata', 'Il file scelto è un backup, non una configurazione.\nNessuna modifica applicata.', { bad: true });
+    if (v === 'config-bad') return info('Configurazione non caricata', 'Il PIN deve avere almeno 4 cifre.\nNessuna modifica applicata.', { bad: true });
+    const nuovi = ['Elena', 'Franco', 'Sara', 'Luca'].filter(n => !S.soci.includes(n));
+    const gia = 4 - nuovi.length;
+    S.soci = [...S.soci, ...nuovi].sort((a, b) => a.localeCompare(b, 'it'));
+    return info('Configurazione caricata', `Soci aggiunti: ${nuovi.length} (${gia} già ${gia === 1 ? 'presente' : 'presenti'}).\nPIN aggiornato.`, {});
+  },
+  memFull: () => { S.memFull = !S.memFull; },
+  toast: v => toast(v)
+};
+
+app.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el || el.tagName === 'SELECT') return;
+  if (el.dataset.act === 'bg') { if (e.target === el) { S.sheet = null; render(); } return; }
+  const fn = ACT[el.dataset.act];
+  if (fn) { fn(el.dataset.v, el.dataset.d); render(); }
+});
+app.addEventListener('change', e => {
+  const el = e.target;
+  if (el.dataset.act !== 'move') return;
+  const c = cart(); const i = c[+el.dataset.v]; i.who = el.value === GEN ? '' : el.value;
+  const same = c.find(x => x !== i && x.pid === i.pid && x.who === i.who);
+  if (same) { same.qty += i.qty; c.splice(c.indexOf(i), 1); }
+  render();
+});
+app.addEventListener('input', e => {
+  const b = e.target.dataset.bind; if (!b) return;
+  setPath(b, e.target.value);
+  if (e.target.dataset.live) render();
+});
+app.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'ns-nome') { ACT.addSocio(); render(); } });
+
+document.querySelectorAll('[data-dev]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-dev]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  document.getElementById('frame').className = 'frame ' + b.dataset.dev;
+  document.getElementById('bench').classList.toggle('wide', b.dataset.dev === 'tablet');
+}));
+document.getElementById('reset').addEventListener('click', () => { S = initial(); render(); });
+setInterval(() => { const c = app.querySelector('.clock'); if (c) c.textContent = now(); }, 30000);
+renderCov();
+render();
+})();
+</script>
