@@ -7,6 +7,7 @@ import { SchermataCassa } from './cassa/SchermataCassa';
 import { cx } from './comuni/cx';
 import { Finestre } from './comuni/Finestre';
 import { SchermataConti } from './conti/SchermataConti';
+import { FoglioIncasso } from './incasso/FoglioIncasso';
 import { Navigazione } from './Navigazione';
 import { SchermataGestione, SchermataStorico } from './SchermateAltre';
 
@@ -57,6 +58,7 @@ export function App() {
       )}
       <div className="[grid-area:nav] lg:min-h-0"><Navigazione /></div>
       <FogliCassa />
+      <FoglioIncasso />
       <Finestre />
     </div>
   );

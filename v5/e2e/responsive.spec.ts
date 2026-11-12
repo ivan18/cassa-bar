@@ -35,6 +35,13 @@ for (const larghezza of [320, 360, 375, 768, 1024, 1280]) {
         expect(await sfora(page)).toBe(false);
         await page.getByRole('button', { name: 'Chiudi' }).click();
       }
+      // incasso: conferma sempre raggiungibile, niente sforamenti
+      await page.locator('button:has-text("Incassa"):visible').first().click();
+      await expect(page.getByTestId('conferma-incasso')).toBeInViewport();
+      await expect(page.getByTestId('resto')).toBeInViewport(); // il resto si vede senza scorrere
+      expect(await sfora(page)).toBe(false);
+      await page.getByTestId('foglio-incasso').getByRole('button', { name: 'Chiudi' }).click();
+
       await page.locator('button:has-text("Salva"):visible').first().click();
       await page.click('[data-testid=nav-conti]');
       expect(await sfora(page)).toBe(false);

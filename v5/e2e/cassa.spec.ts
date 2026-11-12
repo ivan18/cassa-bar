@@ -96,14 +96,6 @@ test('Salva conto: torna al Banco, il tavolo resta occupato; conto e comanda sop
   expect(salvato.seduti['Tavolo 3']).toEqual(['Andrea']);
 });
 
-test('Incassa apre il segnaposto della Fase 4', async ({ app }) => {
-  const { page } = app;
-  await batti(page, 'Caffè');
-  await page.click('[data-testid=incassa]');
-  await expect(page.getByTestId('foglio-incasso')).toContainText('Fase 4');
-  await page.getByRole('button', { name: 'Chiudi' }).click();
-  await expect(page.getByTestId('foglio-incasso')).toHaveCount(0);
-});
 
 test.describe('telefono', () => {
   test.use({ viewport: { width: 375, height: 740 } });
