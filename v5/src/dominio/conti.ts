@@ -18,3 +18,16 @@ export const vociDelTavolo = (conti: readonly Conto[], tavolo: Tavolo): Voce[] =
 /** Conti ordinati come i tavoli: Banco, poi Tavolo 1–6. */
 export const contiOrdinati = (conti: readonly Conto[]) =>
   [...conti].sort((a, b) => TAVOLI.indexOf(a.tavolo) - TAVOLI.indexOf(b.tavolo));
+
+const stessaVoce = (a: Voce, b: Voce) =>
+  a.id === b.id && a.qta === b.qta && a.socio === b.socio && a.nome === b.nome && a.prezzo === b.prezzo;
+
+/**
+ * La comanda ha voci che il conto salvato del suo tavolo non ha (voci nuove, quantità o soci cambiati)?
+ * Una comanda vuota non conta: non c'è niente da salvare e il conto salvato, se c'è, resta com'è.
+ */
+export function vociNonSalvate(comanda: Comanda, conti: readonly Conto[]): boolean {
+  if (comanda.voci.length === 0) return false;
+  const salvate = vociDelTavolo(conti, comanda.tavolo);
+  return salvate.length !== comanda.voci.length || comanda.voci.some((v, i) => !stessaVoce(v, salvate[i]!));
+}

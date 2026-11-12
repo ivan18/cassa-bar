@@ -27,7 +27,23 @@ export function Finestre() {
           <div role="alertdialog" aria-modal="true" aria-label={conferma.titolo} className="flex w-full max-w-[400px] flex-col gap-3.5 rounded-[18px] bg-lav-2 p-5">
             <h2 className={cx('font-display text-[26px] font-bold leading-tight', conferma.pericolo && !conferma.no && 'text-rosso')}>{conferma.titolo}</h2>
             <p className="whitespace-pre-line text-gesso-dim">{conferma.testo}</p>
-            {conferma.no ? (
+            {conferma.altra ? (
+              <div className="flex flex-col gap-2">
+                <Pulsante grande variante="principale" data-testid="conferma-si" onClick={() => { ui.getState().chiudiConferma(); conferma.azione?.(); }}>
+                  {conferma.si}
+                </Pulsante>
+                <div className="grid grid-cols-2 gap-2">
+                  <Pulsante data-testid="conferma-no" onClick={() => ui.getState().chiudiConferma()}>{conferma.no ?? 'Annulla'}</Pulsante>
+                  <Pulsante
+                    data-testid="conferma-altra"
+                    variante={conferma.altra.pericolo ? 'pericolo' : 'secondario'}
+                    onClick={() => { ui.getState().chiudiConferma(); conferma.altra?.azione(); }}
+                  >
+                    {conferma.altra.testo}
+                  </Pulsante>
+                </div>
+              </div>
+            ) : conferma.no ? (
               <div className="grid grid-cols-2 gap-2">
                 <Pulsante data-testid="conferma-no" onClick={() => ui.getState().chiudiConferma()}>{conferma.no}</Pulsante>
                 <Pulsante

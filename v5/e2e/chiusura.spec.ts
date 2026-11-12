@@ -200,3 +200,14 @@ test.describe('blocco automatico', () => {
     await expect(page.getByTestId('gestione-bloccata')).toBeVisible();
   });
 });
+
+test('la chiusura avvisa delle voci battute e non salvate, che andrebbero perse', async ({ app }) => {
+  const { page } = app;
+  await preparaStato(page, { ...SERATA, comanda: { tavolo: 'Tavolo 3', voci: [voce('Caffè', 100, 2)] } });
+  await apriGestione(page, 'chiusura');
+  await expect(page.getByTestId('nota-non-salvate')).toHaveText(
+    'La comanda del Tavolo 3 ha 2 articoli non salvati (€ 2,00): con la chiusura si perdono. Salvali dalla Cassa con "Salva conto" (diventeranno un credito) oppure incassali.');
+  await page.click('[data-testid=avanti]');
+  await page.click('[data-testid=avanti]');
+  await expect(page.getByTestId('nota-non-salvate')).toBeVisible();
+});

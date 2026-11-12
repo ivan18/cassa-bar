@@ -18,6 +18,8 @@ export interface Conferma {
   /** azione distruttiva: il pulsante è rosso e non evidenziato */
   pericolo?: boolean;
   azione?: () => void;
+  /** terza scelta (es. "Scarta"): con questa, "si" diventa il pulsante grande in alto */
+  altra?: { testo: string; pericolo?: boolean; azione: () => void };
 }
 
 export interface RichiestaPin {

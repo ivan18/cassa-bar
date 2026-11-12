@@ -4,7 +4,7 @@ Lavorare per fasi: per ogni fase un branch `feat/v5-…` aperto da `sviluppo/v5`
 
 Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
-**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). D8 e D9 decise; Fasi 3 e 4 chiuse (Cassa, conti, incasso per quantità). Fase 5 chiusa (chiusura in tre passi, fondo, archivio, Storico, report stampabile). Fase 6 chiusa (Prodotti, Soci, Dati, intestazione, memoria piena). Fase 7 chiusa: parità con la v4.2 verificata voce per voce (103 test verdi). Restano i punti aperti: file unico / PWA / pubblicazione e import dei backup v4.
+**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). D8 e D9 decise; Fasi 3 e 4 chiuse (Cassa, conti, incasso per quantità). Fase 5 chiusa (chiusura in tre passi, fondo, archivio, Storico, report stampabile). Fase 6 chiusa (Prodotti, Soci, Dati, intestazione, memoria piena). Fase 7 chiusa: parità con la v4.2 verificata voce per voce, più la protezione delle voci non salvate (107 test verdi). Restano i punti aperti: file unico / PWA / pubblicazione e import dei backup v4.
 
 ## Contesto
 
@@ -151,6 +151,7 @@ Resta com'è nella v4.2, salvo decisione diversa: "Salva conto" torna al Banco m
 **☑ Fase 7 — Collaudo di parità** — chiusa il 2026-11-12
 - ☑ Tabella qui sotto: ogni voce di `docs/FUNZIONALITA.md` (v4.2) con il test della v5 che la copre, la decisione che la cambia o il punto aperto che la rimanda. I test sono in `v5/e2e/` (`dominio/` = senza browser).
 - ☑ Garanzie trasversali, in ogni test nel browser (`e2e/supporto.ts`): nessuna richiesta di rete verso l'esterno, nessun errore JavaScript o in console, localStorage vuoto all'inizio. Responsive a 320 / 360 / 375 / 768 / 1024 / 1280 px senza sforamenti (`responsive`). Nessun PIN in chiaro nel bundle (`avvio`), provato con due PIN diversi.
+- ☑ Voci non salvate (segnalato dall'utente; nella v4.2 si perdevano in silenzio): cambiando tavolo, o con Conti → Modifica, se la comanda ha voci diverse dal conto salvato una finestra chiede "Salva e cambia", "Resta qui" o "Scarta". Toccare il tavolo già aperto non cambia nulla. La chiusura cassa avvisa (passi 1 e 3) se la comanda ha voci non salvate, che altrimenti andrebbero perse. Dominio: `vociNonSalvate` in `conti.ts`; le finestre dell'app accettano una terza scelta. Test: `cassa` (2), `chiusura` (1), `dominio/chiusura` (1).
 - ☑ Lacuna trovata e chiusa: il filtro per categoria della Cassa non aveva test. Scrivendolo è emerso un difetto: una categoria rimasta senza prodotti lasciava la Cassa vuota con un filtro senza pulsante; ora si torna a "Tutti" (`cassa`, due test nuovi).
 
 Legenda: ☑ coperta da test · ↻ cambiata da una decisione approvata · ⏳ rimandata a un punto aperto.
@@ -172,6 +173,7 @@ Legenda: ☑ coperta da test · ↻ cambiata da una decisione approvata · ⏳ r
 | Battuta extra: 20 importi rapidi, descrizione facoltativa in maiuscolo, anche in TUTTI | ↻ D9: foglio con 4 importi rapidi e tastierino | `cassa` › extra, `dominio/comanda` › battuta extra |
 | Comanda: voci per socio, + e − (a zero sparisce), riassegnazione, Svuota, totale | ☑ Svuota chiede conferma | `cassa` › quantità e riassegnazione, `dominio/comanda` (4 test) |
 | Salva conto: salva o aggiorna e torna al Banco | ☑ | `cassa` › Salva conto, `dominio/chiusura` › conti aperti |
+| Cambio tavolo: carica il conto del nuovo tavolo (nella v4.2 le voci non salvate si perdevano senza avviso) | ↻ chiede cosa fare delle voci non salvate: Salva e cambia, Resta qui, Scarta | `cassa` › cambio tavolo, › Conti → Modifica, `dominio/chiusura` › voci non salvate |
 | Barra fissa su telefono e tablet in verticale | ↻ D11: barra sotto i 1024 px, pannello da 1024 | `cassa` › barra della comanda, `responsive` |
 | **Incasso** | | |
 | Tutto selezionato all'apertura | ☑ | `incasso` › si apre con tutto selezionato |
