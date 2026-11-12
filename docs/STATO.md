@@ -35,6 +35,8 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 - ☑ Report alla chiusura cassa (D7): nella v4.2.
 
 ### v5 — riscrittura da zero (vedi il [piano v5](PIANO-v5.md))
+> Il lavoro della v5 si svolge sul branch **`sviluppo/v5`**: l'avanzamento aggiornato è nello `STATO.md` di quel branch. Su `main` arriverà con un'unica PR a v5 completa.
+
 - ☑ Piano approvato (2026-11-12): cartella `v5/`, React + TypeScript + Vite, store Zustand, test e2e con `@playwright/test` (niente Python), UI riprogettata.
 - ☑ Fase 0: prototipo ([prototipo-v5.html](prototipo-v5.html)) con tutte le funzioni della v4.2; approvate D10–D14 (limiti noti, comanda a barra, chiusura in 3 passi e dialoghi dell'app, euro con la virgola, archivio chiusure).
 - ☐ Discutere D8 (navigazione a 4 sezioni, un PIN per tutta la Gestione) e D9 (extra con tastierino): da decidere prima della Fase 3.
