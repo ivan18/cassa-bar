@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { chiudiCassa, fondoSuccessivo, incassato, riepilogoSerata } from '../../src/dominio/chiusura';
 import { descriviVoci } from '../../src/dominio/comanda';
-import { contiOrdinati, salvaConto, vociDelTavolo } from '../../src/dominio/conti';
+import { contiOrdinati, salvaConto, vociDelTavolo, vociNonSalvate } from '../../src/dominio/conti';
 import type { StatoDominio, Vendita } from '../../src/dominio/tipi';
 import { statoIniziale } from '../../src/stato/store';
 import { ADESSO, voce } from './aiuti';
@@ -81,4 +81,16 @@ test('riepilogo della serata: fondo, incassato, in cassa, crediti da incassare',
 test('voci in una riga: quantità, nome e socio (il Tavolo generico non si scrive)', () => {
   expect(descriviVoci([voce('Dreher 66 cl', 200, 2, 'Andrea'), voce('Caffè', 100, 1)])).toBe('2× Dreher 66 cl (Andrea), 1× Caffè');
   expect(descriviVoci([])).toBe('');
+});
+
+test('voci non salvate: comanda diversa dal conto del tavolo; comanda vuota non conta', () => {
+  const caffe = voce('Caffè', 100, 2);
+  const conti = salvaConto([], { tavolo: 'Tavolo 3', voci: [caffe] }, ADESSO);
+  expect(vociNonSalvate({ tavolo: 'Tavolo 3', voci: [caffe] }, conti)).toBe(false); // uguale al conto
+  expect(vociNonSalvate({ tavolo: 'Tavolo 3', voci: [{ ...caffe, qta: 3 }] }, conti)).toBe(true); // quantità cambiata
+  expect(vociNonSalvate({ tavolo: 'Tavolo 3', voci: [{ ...caffe, socio: 'Andrea' }] }, conti)).toBe(true); // riassegnata
+  expect(vociNonSalvate({ tavolo: 'Tavolo 3', voci: [caffe, voce('Fanta', 150, 1)] }, conti)).toBe(true); // voce in più
+  expect(vociNonSalvate({ tavolo: 'Banco', voci: [voce('Fanta', 150, 1)] }, conti)).toBe(true); // nessun conto salvato
+  expect(vociNonSalvate({ tavolo: 'Tavolo 3', voci: [] }, conti)).toBe(false);
+  expect(vociNonSalvate({ tavolo: 'Banco', voci: [] }, [])).toBe(false);
 });

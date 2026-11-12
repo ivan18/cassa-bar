@@ -1,7 +1,8 @@
 // Azioni dell'interfaccia che coinvolgono entrambi gli store (dati e UI): un solo posto, chiamate dai componenti.
 import { leggiBackup } from '../dominio/backup';
 import type { DatiChiusura } from '../dominio/chiusura';
-import { destinatari, totale } from '../dominio/comanda';
+import { articoli, destinatari, totale } from '../dominio/comanda';
+import { vociNonSalvate } from '../dominio/conti';
 import type { Tavolo } from '../dominio/costanti';
 import { euro } from '../dominio/formato';
 import { cassa } from '../stato/cassa';
@@ -15,9 +16,38 @@ function aChi(): string[] {
   return destinatari(seduti, socioEffettivo(seduti, u.socioAttivo), u.tutti);
 }
 
-export function selezionaTavolo(tavolo: Tavolo) {
+function apriTavolo(tavolo: Tavolo) {
   cassa.getState().selezionaTavolo(tavolo);
   ui.getState().azzeraSocio();
+}
+
+/**
+ * Passa a un altro tavolo. Se la comanda ha voci non salvate, prima chiede cosa farne:
+ * salvarle nel conto, scartarle o restare. Toccare il tavolo già aperto non cambia nulla.
+ */
+export function selezionaTavolo(tavolo: Tavolo, dopo: () => void = () => {}) {
+  const s = cassa.getState();
+  const attuale = s.comanda.tavolo;
+  if (tavolo === attuale) { dopo(); return; }
+  if (!vociNonSalvate(s.comanda, s.contiAperti)) { apriTavolo(tavolo); dopo(); return; }
+  const n = articoli(s.comanda.voci);
+  ui.getState().chiediConferma({
+    titolo: `Voci non salvate al ${attuale}`,
+    testo: `${n === 1 ? '1 articolo' : `${n} articoli`} (${euro(totale(s.comanda.voci))}) non ${n === 1 ? 'è' : 'sono'} nel conto. Cosa vuoi fare prima di passare al ${tavolo}?`,
+    si: 'Salva e cambia',
+    no: 'Resta qui',
+    azione: () => {
+      cassa.getState().salvaConto(new Date());
+      apriTavolo(tavolo);
+      ui.getState().avvisa(`Conto del ${attuale} salvato.`);
+      dopo();
+    },
+    altra: {
+      testo: 'Scarta',
+      pericolo: true,
+      azione: () => { apriTavolo(tavolo); dopo(); },
+    },
+  });
 }
 
 export const batti = (prodottoId: string) => cassa.getState().aggiungiProdotto(prodottoId, aChi());
@@ -45,8 +75,7 @@ export function svuotaComanda() {
 }
 
 export function modificaConto(tavolo: Tavolo) {
-  selezionaTavolo(tavolo);
-  ui.getState().vai('cassa');
+  selezionaTavolo(tavolo, () => ui.getState().vai('cassa'));
 }
 
 /** Elimina un conto aperto: cancella soldi già registrati, quindi chiede il PIN (D3). */

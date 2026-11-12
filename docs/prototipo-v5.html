@@ -399,6 +399,7 @@ details.panel:not([open]) summary::after { content: "Apri"; }
         <div class="dec"><b>D12</b><div><strong>Chiusura in tre passi</strong><span>Riepilogo, Consegna, Conferma. Avvisi e conferme in finestre dell'app invece dei dialoghi del browser.</span></div></div>
         <div class="dec"><b>D13</b><div><strong>Euro con la virgola</strong><span>€ 2,00 in tutta l'app e nei report, come si scrive in Italia (oggi € 2.00).</span></div></div>
         <div class="dec"><b>D14</b><div><strong>Archivio separato dalla chiusura</strong><span>Le chiusure registrate hanno una voce propria in Gestione, con Report ed Elimina; l'avviso di memoria piena porta lì.</span></div></div>
+        <div class="dec"><b>D15</b><div><strong>Voci non salvate protette</strong><span>Cambiando tavolo (o con Conti → Modifica) con voci non salvate, una finestra chiede Salva e cambia, Resta qui o Scarta; la chiusura le segnala. Nella v4.2 si perdevano senza avviso.</span></div></div>
       </section>
     </aside>
   </div>
@@ -439,6 +440,8 @@ function initial() {
       'Tavolo 5': [it(11, '', 3)]
     },
     saved: { 'Tavolo 1': '21:48', 'Tavolo 5': '22:05' },
+    // com'erano i conti al salvataggio: una comanda diversa ha voci non salvate (D15)
+    snap: { 'Tavolo 1': JSON.stringify([it(1, 'Luca', 2), it(10, 'Luca', 1)]), 'Tavolo 5': JSON.stringify([it(11, '', 3)]) },
     credits: [{ id: 'c1', table: 'Tavolo 2', date: '10/11', time: '23:40', items: [it(2, 'Paolo', 2), it(7, 'Roberto', 1)] }],
     hist: [
       { time: '22:10', table: 'Tavolo 4', who: 'Intero tavolo', items: '3× Peroni 66 cl, 2× Patatine', tot: 9 },
@@ -494,7 +497,8 @@ const NOTES = {
     'Il nome dell\'associazione in alto si tocca per modificare l\'intestazione.',
     '"Generico" è sempre disponibile: le voci battute senza socio restano del tavolo. TUTTI (verde) aggiunge un prodotto a ogni socio seduto.',
     'Le categorie hanno il titolo "Prodotti" e vanno a capo. La battuta extra è il riquadro "Extra" in fondo (D9).',
-    'Su telefono la comanda è la barra sopra il menu (D11); su tablet è sempre a destra.'
+    'Su telefono la comanda è la barra sopra il menu (D11); su tablet è sempre a destra.',
+    'Cambiando tavolo con voci non salvate una finestra chiede "Salva e cambia", "Resta qui" o "Scarta" (D15). Nell\'esempio il Tavolo 3 non è salvato: tocca un altro tavolo per vederla.'
   ]],
   comanda: ['Comanda', [
     'Voci raggruppate per socio, con il subtotale di ognuno.',
@@ -560,7 +564,8 @@ const COV = [
     ['Categorie e prodotti', 'Cassa', () => { S.scr = 'cassa'; }],
     ['Battuta extra con descrizione', 'Foglio', () => { S.scr = 'cassa'; S.extra = { amt: '', desc: '' }; S.sheet = 'extra'; }],
     ['Comanda: quantità, riassegna, svuota', 'Comanda', () => { S.scr = 'cassa'; S.sheet = 'comanda'; }],
-    ['Salva conto e barra fissa su telefono', 'Cassa', () => { S.scr = 'cassa'; }]
+    ['Salva conto e barra fissa su telefono', 'Cassa', () => { S.scr = 'cassa'; }],
+    ['Voci non salvate al cambio tavolo (D15)', 'Finestra', () => { S.scr = 'cassa'; S.sheet = null; if (!dirty(S.table)) addItem(S.prods[0], S.active); switchTable(S.table === 'Banco' ? 'Tavolo 1' : 'Banco'); }]
   ]],
   ['Incasso', [
     ['Per quantità, con preselezioni', 'Foglio', () => { S.scr = 'cassa'; if (!cart().length) S.table = 'Tavolo 1'; openPay('tab', S.table); }],
@@ -746,11 +751,15 @@ function vChiusura() {
   const next = Math.max(0, S.fondo + inc - cons);
   const open = openTables();
   const names = ['Riepilogo', 'Consegna', 'Conferma'];
+  // D15: voci battute e non salvate andrebbero perse con la chiusura
+  const unsaved = TAVOLI.filter(dirty);
+  const unsavedNote = unsaved.length ? `<div class="note err">${unsaved.join(', ')}: voci battute e non salvate (${eur(unsaved.reduce((a, t) => a + sum(S.tabs[t]), 0))}). Con la chiusura si perdono: salvale dalla Cassa con "Salva conto" (diventeranno un credito) oppure incassale.</div>` : '';
   const steps = `<div class="steps" aria-hidden="true">${[1, 2, 3].map(i => `<span class="${i <= S.step ? 'on' : ''}"></span>`).join('')}</div><div class="steps-l">${names.map((n, i) => `<span class="${i + 1 === S.step ? 'on' : ''}">${i + 1}. ${n}</span>`).join('')}</div>`;
   if (S.step === 1) return `<h1 class="title">Chiusura cassa</h1>${steps}
     <div class="kpis"><div class="kpi"><span>Fondo iniziale</span><strong>${eur(S.fondo)}</strong></div><div class="kpi hl"><span>Incassato</span><strong>${eur(inc)}</strong></div><div class="kpi"><span>In cassa</span><strong>${eur(S.fondo + inc)}</strong></div></div>
     <button class="btn sec" data-act="openFondo" style="align-self:flex-start">Modifica fondo cassa</button>
     ${open.length ? `<div class="note">${open.length === 1 ? '1 conto aperto' : open.length + ' conti aperti'} (${open.join(', ')}) ${open.length === 1 ? 'passerà' : 'passeranno'} nei crediti e i tavoli verranno liberati.</div>` : ''}
+    ${unsavedNote}
     <button class="btn pri big" data-act="stepTo" data-v="2">Avanti</button>`;
   if (S.step === 2) return `<h1 class="title">Chiusura cassa</h1>${steps}
     <div class="field"><label for="ch-cassiere">Cassiere</label><input id="ch-cassiere" data-bind="close.cassiere" value="${esc(S.close.cassiere)}" placeholder="Nome di chi chiude" autocomplete="off"></div>
@@ -765,6 +774,7 @@ function vChiusura() {
       ${S.close.causale ? `<span>Causale · <b>${esc(S.close.causale)}</b></span>` : ''}
       <span>Conti che diventano crediti · <b>${open.length}</b></span></div>
       <div class="screen ok"><span>Fondo per domani</span><strong>${eur(next)}</strong></div></div>
+    ${unsavedNote}
     ${cons > S.fondo + inc ? '<div class="note err">Il consegnato supera il contante in cassa: il fondo per domani sarà zero.</div>' : ''}
     <div class="duo"><button class="btn sec" data-act="stepTo" data-v="2">Indietro</button><button class="btn pri" data-act="doClose">Registra chiusura</button></div>`;
 }
@@ -838,7 +848,8 @@ function vSheet() {
   if (S.sheet === 'conferma') {
     const c = S.confirm;
     return `<div class="overlay center"><div class="dialog ${c.bad ? 'bad' : ''}" role="alertdialog" aria-label="${esc(c.title)}"><h2>${esc(c.title)}</h2><p>${esc(c.text)}</p>
-      ${c.no ? `<div class="duo eq"><button class="btn sec" data-act="close">${esc(c.no)}</button><button class="btn ${c.danger ? 'dang' : 'pri'}" data-act="confirmYes">${esc(c.yes)}</button></div>`
+      ${c.alt ? `<button class="btn pri big" data-act="confirmYes">${esc(c.yes)}</button><div class="duo eq"><button class="btn sec" data-act="close">${esc(c.no || 'Annulla')}</button><button class="btn ${c.alt.danger ? 'dang' : 'sec'}" data-act="confirmAlt">${esc(c.alt.text)}</button></div>`
+        : c.no ? `<div class="duo eq"><button class="btn sec" data-act="close">${esc(c.no)}</button><button class="btn ${c.danger ? 'dang' : 'pri'}" data-act="confirmYes">${esc(c.yes)}</button></div>`
         : `<button class="btn pri big" data-act="confirmYes">${esc(c.yes)}</button>`}</div></div>`;
   }
   return '';
@@ -908,7 +919,22 @@ function render() {
 // ---------- azioni ----------
 let toastTimer;
 function toast(msg) { S.toast = msg; clearTimeout(toastTimer); toastTimer = setTimeout(() => { S.toast = ''; render(); }, 2800); }
-function info(title, text, opts = {}) { S.confirm = { title, text, yes: opts.yes || 'OK', no: opts.no || null, danger: !!opts.danger, bad: !!opts.bad, run: opts.run || null }; S.sheet = 'conferma'; }
+function info(title, text, opts = {}) { S.confirm = { title, text, yes: opts.yes || 'OK', no: opts.no || null, danger: !!opts.danger, bad: !!opts.bad, run: opts.run || null, alt: opts.alt || null }; S.sheet = 'conferma'; }
+// D15: cambiando tavolo con voci non salvate si sceglie se salvarle, scartarle o restare
+const snapOf = t => JSON.stringify(S.tabs[t] || []);
+const dirty = t => (S.tabs[t] || []).length > 0 && snapOf(t) !== (S.snap[t] || '[]');
+function goTable(v) { S.table = v; S.active = seated(v)[0] || ''; S.tutti = false; }
+function switchTable(v, after) {
+  const t = S.table; const done = () => { if (after) after(); };
+  if (v === t) { done(); return; }
+  if (!dirty(t)) { goTable(v); done(); return; }
+  const n = cart().reduce((a, i) => a + i.qty, 0);
+  info(`Voci non salvate al ${t}`, `${n === 1 ? '1 articolo' : n + ' articoli'} (${eur(sum(cart()))}) non ${n === 1 ? 'è' : 'sono'} nel conto. Cosa vuoi fare prima di passare al ${v}?`, {
+    yes: 'Salva e cambia', no: 'Resta qui',
+    run: () => { S.saved[t] = S.saved[t] || now(); S.snap[t] = snapOf(t); goTable(v); done(); toast(`Conto del ${t} salvato.`); },
+    alt: { text: 'Scarta', danger: true, run: () => { if (S.snap[t]) S.tabs[t] = JSON.parse(S.snap[t]); else delete S.tabs[t]; goTable(v); done(); } }
+  });
+}
 function addItem(p, who) {
   const c = S.tabs[S.table] = S.tabs[S.table] || [];
   const ex = c.find(i => i.pid === p.id && i.who === who);
@@ -958,10 +984,11 @@ function payConfirm() {
     const t = S.pay.ref;
     if (rest.length) {
       S.tabs[t] = rest;
+      if (S.saved[t]) S.snap[t] = JSON.stringify(rest);
       S.seated[t] = seated(t).filter(m => !payers.includes(m) || rest.some(i => i.who === m));
       if (S.table === t && S.active && !S.seated[t].includes(S.active)) S.active = S.seated[t][0] || '';
     } else {
-      delete S.tabs[t]; delete S.seated[t]; delete S.saved[t];
+      delete S.tabs[t]; delete S.seated[t]; delete S.saved[t]; delete S.snap[t];
       if (S.table === t) { S.table = 'Banco'; S.active = seated('Banco')[0] || ''; S.tutti = false; }
     }
   }
@@ -973,14 +1000,14 @@ function setPath(path, val) { const [a, b] = path.split('.'); S[a][b] = val; }
 
 const ACT = {
   scr: v => { S.scr = v; if (v !== 'gestione') { S.unlocked = false; S.gest = 'menu'; S.step = 1; } S.pin = ''; S.pinErr = ''; },
-  table: v => { S.table = v; S.active = seated(v)[0] || ''; S.tutti = false; },
+  table: v => switchTable(v),
   active: v => { S.active = v; S.tutti = false; },
   tutti: () => { S.tutti = !S.tutti; },
   cat: v => { S.cat = v; },
   add: v => { const p = S.prods.find(x => x.id === +v); whoTargets().forEach(w => addItem(p, w)); },
   qty: (v, d) => { const c = cart(); c[+v].qty += +d; if (c[+v].qty <= 0) c.splice(+v, 1); },
   clear: () => info('Svuotare la comanda?', `Si tolgono tutte le voci di ${S.table}.`, { yes: 'Svuota', no: 'Annulla', danger: true, run: () => { S.tabs[S.table] = []; } }),
-  save: () => { const t = S.table; S.saved[t] = S.saved[t] || now(); S.sheet = null; S.table = 'Banco'; S.active = seated('Banco')[0] || ''; S.tutti = false; toast(`Conto del ${t} salvato.`); },
+  save: () => { const t = S.table; S.saved[t] = S.saved[t] || now(); S.snap[t] = snapOf(t); S.sheet = null; S.table = 'Banco'; S.active = seated('Banco')[0] || ''; S.tutti = false; toast(`Conto del ${t} salvato.`); },
   checkout: () => openPay('tab', S.table),
   sheet: v => { S.sheet = v; S.az = ''; if (v === 'extra') S.extra = { amt: '', desc: '' }; },
   close: () => { S.sheet = null; },
@@ -1001,8 +1028,8 @@ const ACT = {
   contiSeg: v => { S.contiSeg = v; },
   payTab: v => openPay('tab', v),
   payCredit: v => openPay('credit', v),
-  editTab: v => { S.scr = 'cassa'; S.table = v; S.active = seated(v)[0] || ''; },
-  delTab: v => askPin(`Elimina il conto del ${v} (${eur(sum(S.tabs[v]))}).`, () => { delete S.tabs[v]; delete S.saved[v]; delete S.seated[v]; toast(`Conto del ${v} eliminato.`); }),
+  editTab: v => switchTable(v, () => { S.scr = 'cassa'; }),
+  delTab: v => askPin(`Elimina il conto del ${v} (${eur(sum(S.tabs[v]))}).`, () => { delete S.tabs[v]; delete S.saved[v]; delete S.snap[v]; delete S.seated[v]; toast(`Conto del ${v} eliminato.`); }),
   delCredit: v => { const c = S.credits.find(x => x.id === v); askPin(`Elimina il credito del ${c.table} del ${c.date} (${eur(sum(c.items))}).`, () => { S.credits = S.credits.filter(x => x.id !== v); toast('Credito eliminato.'); }); },
   pinKey,
   gest: v => { S.gest = v; S.step = 1; S.az = ''; },
@@ -1020,12 +1047,13 @@ const ACT = {
     const id = 'k' + Date.now();
     S.closures.unshift({ id, date: '12/11/2026', time: now(), cassiere: S.close.cassiere, fondo: S.fondo, incassato: inc, consegnato: cons, causale: S.close.causale, next, crediti: open.length, sales: [...S.hist].reverse() });
     open.forEach((t, k) => { S.credits.unshift({ id: 'n' + k + Date.now(), table: t, date: '12/11', time: S.saved[t], items: S.tabs[t] }); delete S.tabs[t]; });
-    S.fondo = next; S.hist = []; S.saved = {}; S.seated = {}; S.table = 'Banco'; S.active = ''; S.tutti = false;
+    S.fondo = next; S.hist = []; S.saved = {}; S.snap = {}; S.tabs = {}; S.seated = {}; S.table = 'Banco'; S.active = ''; S.tutti = false;
     S.close = { cassiere: '', consegnato: '', causale: '' }; S.step = 1; S.gest = 'menu';
     info('Chiusura registrata', `${open.length === 1 ? '1 conto aperto è passato' : open.length + ' conti aperti sono passati'} nei crediti e i tavoli sono liberi.\nNuovo fondo cassa: ${eur(next)}.\n\nVuoi stampare il report della chiusura?`,
       { yes: 'Stampa report', no: 'Non ora', run: () => { S.report = { kind: 'chiusura', id }; S.sheet = 'report'; } });
   },
   confirmYes: () => { const run = S.confirm && S.confirm.run; S.sheet = null; if (run) run(); },
+  confirmAlt: () => { const run = S.confirm && S.confirm.alt && S.confirm.alt.run; S.sheet = null; if (run) run(); },
   openReport: v => { S.report = v === 'serata' ? { kind: 'serata' } : { kind: 'chiusura', id: v }; S.sheet = 'report'; },
   delClosure: v => { const k = S.closures.find(x => x.id === v); info(`Eliminare la chiusura del ${k.date.slice(0, 5)}?`, k.sales ? `Si perdono anche le ${k.sales.length} vendite archiviate. Conviene esportare un backup prima.` : 'La chiusura viene tolta dall\'archivio.', { yes: 'Elimina', no: 'Annulla', danger: true, run: () => { S.closures = S.closures.filter(x => x.id !== v); toast('Chiusura eliminata.'); } }); },
   goArchivio: () => unlockTo('archivio'),

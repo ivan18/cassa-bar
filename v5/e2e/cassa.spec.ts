@@ -1,4 +1,4 @@
-import { batti, comanda, expect, scegliTavolo, siediSoci, statoSalvato, test } from './supporto';
+import { batti, comanda, digitaPin, expect, PIN, scegliTavolo, siediSoci, statoSalvato, test } from './supporto';
 
 test('soci al tavolo: filtro A–Z con lettere vuote spente; il primo seduto diventa il socio attivo', async ({ app }) => {
   const { page } = app;
@@ -115,4 +115,91 @@ test.describe('telefono', () => {
     await barra.getByRole('button', { name: 'Salva', exact: true }).click();
     await expect(page.getByTestId('avviso')).toHaveText('Conto del Tavolo 2 salvato.');
   });
+});
+
+test('categorie: solo quelle presenti nel listino; il filtro mostra i prodotti della categoria', async ({ app }) => {
+  const { page } = app;
+  const categorie = page.locator('[data-categoria]');
+  await expect(categorie).toHaveText(['Tutti', 'Birre', 'Bibite', 'Snack', 'Bar']); // nessun prodotto Extra di esempio
+  await expect(page.locator('[data-categoria="Tutti"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.click('[data-categoria="Snack"]');
+  await expect(page.locator('[data-prodotto]')).toHaveText([/Patatine/, /Salatini/]);
+  await expect(page.getByText('2 in Snack')).toBeVisible();
+  await page.click('[data-categoria="Tutti"]');
+  await expect(page.locator('[data-prodotto]')).toHaveCount(12);
+});
+
+test('una categoria che resta senza prodotti sparisce e il filtro torna a Tutti', async ({ app }) => {
+  const { page } = app;
+  await page.click('[data-categoria="Bar"]');
+  await expect(page.locator('[data-prodotto]')).toHaveText([/Caffè/]);
+  await page.click('[data-testid=nav-gestione]');
+  await digitaPin(page, PIN);
+  await page.click('[data-testid=voce-prodotti]');
+  await page.click('[data-prodotto-listino="Caffè"]');
+  await page.click('[data-testid=elimina-prodotto]');
+  await page.click('[data-testid=conferma-si]');
+  await page.click('[data-testid=nav-cassa]');
+  await expect(page.locator('[data-categoria="Bar"]')).toHaveCount(0);
+  await expect(page.locator('[data-categoria="Tutti"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-prodotto]')).toHaveCount(11);
+});
+
+test('cambio tavolo con voci non salvate: Resta qui, Salva e cambia, Scarta', async ({ app }) => {
+  const { page } = app;
+  const finestra = page.getByRole('alertdialog');
+  const aperto = (t: string) => expect(page.locator(`[data-tavolo="${t}"]`)).toHaveAttribute('aria-pressed', 'true');
+
+  await siediSoci(page, 'Tavolo 3', ['Andrea']);
+  await batti(page, 'Caffè', 2);
+  await scegliTavolo(page, 'Tavolo 3'); // il tavolo già aperto: nessuna domanda, le voci restano
+  await expect(finestra).toHaveCount(0);
+  await expect(page.getByTestId('totale-comanda')).toHaveText('€ 2,00');
+
+  await scegliTavolo(page, 'Tavolo 5');
+  await expect(finestra).toHaveAccessibleName('Voci non salvate al Tavolo 3');
+  await expect(finestra).toContainText('2 articoli (€ 2,00) non sono nel conto. Cosa vuoi fare prima di passare al Tavolo 5?');
+  await finestra.getByRole('button', { name: 'Resta qui' }).click();
+  await aperto('Tavolo 3');
+  await expect(page.getByTestId('totale-comanda')).toHaveText('€ 2,00');
+
+  await scegliTavolo(page, 'Tavolo 5');
+  await finestra.getByRole('button', { name: 'Salva e cambia' }).click();
+  await aperto('Tavolo 5');
+  await expect(page.getByTestId('avviso')).toHaveText('Conto del Tavolo 3 salvato.');
+  expect((await statoSalvato(page)).contiAperti.map(c => [c.tavolo, c.voci[0]?.qta])).toEqual([['Tavolo 3', 2]]);
+
+  await batti(page, 'Fanta');
+  await scegliTavolo(page, 'Tavolo 3');
+  await finestra.getByRole('button', { name: 'Scarta' }).click();
+  await aperto('Tavolo 3');
+  await expect(page.getByTestId('totale-comanda')).toHaveText('€ 2,00'); // il conto salvato
+  expect((await statoSalvato(page)).contiAperti.map(c => c.tavolo)).toEqual(['Tavolo 3']);
+
+  // anche cambiare un conto già salvato è una modifica non salvata
+  await batti(page, 'Caffè');
+  await scegliTavolo(page, 'Banco');
+  await expect(finestra).toContainText('3 articoli (€ 3,00)');
+  await finestra.getByRole('button', { name: 'Scarta' }).click();
+  expect((await statoSalvato(page)).contiAperti[0]?.voci[0]?.qta).toBe(2);
+
+  // senza modifiche si cambia tavolo senza domande
+  await scegliTavolo(page, 'Tavolo 3');
+  await scegliTavolo(page, 'Banco');
+  await expect(finestra).toHaveCount(0);
+  await aperto('Banco');
+});
+
+test('Conti → Modifica con voci non salvate in Cassa: prima la domanda, poi il conto scelto', async ({ app }) => {
+  const { page } = app;
+  await scegliTavolo(page, 'Tavolo 2');
+  await batti(page, 'Caffè');
+  await page.click('[data-testid=salva-conto]');
+  await batti(page, 'Fanta'); // al Banco, non salvata
+  await page.click('[data-testid=nav-conti]');
+  await page.locator('[data-conto="Tavolo 2"]').getByRole('button', { name: 'Modifica' }).click();
+  await expect(page.getByRole('alertdialog')).toHaveAccessibleName('Voci non salvate al Banco');
+  await page.getByRole('button', { name: 'Salva e cambia' }).click();
+  await expect(page.locator('[data-tavolo="Tavolo 2"]')).toHaveAttribute('aria-pressed', 'true');
+  expect((await statoSalvato(page)).contiAperti.map(c => c.tavolo).sort()).toEqual(['Banco', 'Tavolo 2']);
 });

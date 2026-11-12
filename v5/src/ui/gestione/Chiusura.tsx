@@ -3,7 +3,8 @@
 // e nulla viene registrato finché non si tocca "Registra chiusura".
 import { useState } from 'react';
 import { fondoSuccessivo, incassato } from '../../dominio/chiusura';
-import { contiOrdinati } from '../../dominio/conti';
+import { articoli, totale } from '../../dominio/comanda';
+import { contiOrdinati, vociNonSalvate } from '../../dominio/conti';
 import { euro, leggiImporto } from '../../dominio/formato';
 import { useCassa } from '../../stato/cassa';
 import { azzeraFondo, impostaFondo, registraChiusura } from '../azioni';
@@ -70,6 +71,7 @@ export function Chiusura() {
   const fondo = useCassa(s => s.fondo);
   const vendite = useCassa(s => s.vendite);
   const conti = useCassa(s => s.contiAperti);
+  const comanda = useCassa(s => s.comanda);
   const [passo, setPasso] = useState<Passo>(1);
   const [cassiere, setCassiere] = useState('');
   const [consegnato, setConsegnato] = useState(''); // vuoto = tutto l'incasso
@@ -80,6 +82,12 @@ export function Chiusura() {
   const consegna = consegnato.trim() === '' ? incasso : leggiImporto(consegnato);
   const tavoli = contiOrdinati(conti).map(c => c.tavolo);
   const prossimo = fondoSuccessivo(fondo, incasso, consegna ?? 0);
+  // voci battute e non salvate: la chiusura svuota la comanda, quindi andrebbero perse
+  const nonSalvate = vociNonSalvate(comanda, conti) ? (
+    <p role="alert" data-testid="nota-non-salvate" className={cx(nota, 'bg-rosso/15 text-rosso')}>
+      La comanda del {comanda.tavolo} ha {articoli(comanda.voci) === 1 ? '1 articolo non salvato' : `${articoli(comanda.voci)} articoli non salvati`} ({euro(totale(comanda.voci))}): con la chiusura si perdono. Salvali dalla Cassa con "Salva conto" (diventeranno un credito) oppure incassali.
+    </p>
+  ) : null;
 
   return (
     <>
@@ -95,6 +103,7 @@ export function Chiusura() {
               {tavoli.length === 1 ? '1 conto aperto' : `${tavoli.length} conti aperti`} ({tavoli.join(', ')}) {tavoli.length === 1 ? 'passerà' : 'passeranno'} nei crediti e i tavoli verranno liberati.
             </p>
           )}
+          {nonSalvate}
           <Pulsante grande variante="principale" data-testid="avanti" onClick={() => setPasso(2)}>Avanti</Pulsante>
         </section>
       )}
@@ -149,6 +158,7 @@ export function Chiusura() {
               <strong data-testid="fondo-domani" className="whitespace-nowrap font-display text-[30px] leading-tight tabular-nums text-verde">{euro(prossimo)}</strong>
             </div>
           </div>
+          {nonSalvate}
           {consegna > fondo + incasso && (
             <p role="alert" className={cx(nota, 'bg-rosso/15 text-rosso')}>Il consegnato supera il contante in cassa ({euro(fondo + incasso)}): il fondo per domani sarà zero.</p>
           )}
