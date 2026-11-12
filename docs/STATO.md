@@ -34,6 +34,13 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 - ☑ v4.2 (vedi [piano, fase 6](PIANO-v4.md#fase-6--v42)): pubblicata.
 - ☑ Report alla chiusura cassa (D7): nella v4.2.
 
+### v5 — riscrittura da zero (vedi il [piano v5](PIANO-v5.md))
+- ☑ Piano approvato (2026-11-12): cartella `v5/`, React + TypeScript + Vite, store Zustand, test e2e con `@playwright/test` (niente Python), UI riprogettata.
+- ☑ Fase 0: prototipo ([prototipo-v5.html](prototipo-v5.html)) con tutte le funzioni della v4.2; approvate D10–D14 (limiti noti, comanda a barra, chiusura in 3 passi e dialoghi dell'app, euro con la virgola, archivio chiusure).
+- ☐ Discutere D8 (navigazione a 4 sezioni, un PIN per tutta la Gestione) e D9 (extra con tastierino): da decidere prima della Fase 3.
+- ☐ Fasi 1–7 (dettaglio nel piano). Prossima: Fase 1, scheletro.
+- Rimandati: migrazione v4.2 → v5 e import dei backup v4; file unico offline / PWA / pubblicazione (da discutere a parità raggiunta).
+
 ### Manutenzione (non urgenti)
 - ☐ Valutare una GitHub Action che esegua build + test a ogni PR (oggi si lanciano a mano).
 - ☐ Limiti noti in [FUNZIONALITA.md](FUNZIONALITA.md#limiti-e-comportamenti-da-tenere-presenti): decidere quali correggere (colore dei nuovi prodotti, socio eliminato che resta seduto).
@@ -62,6 +69,8 @@ Nessuna.
 ## Registro sessioni
 
 Una riga per sessione, la più recente in alto: cosa è stato fatto e cosa è rimasto a metà.
+
+- **2026-11-12 (3)** — Scritto e approvato il piano della v5 ([PIANO-v5.md](PIANO-v5.md)): riscrittura da zero in `v5/` con React + TypeScript + Vite, Zustand (preferito a `useReducer` e Jotai), Playwright in TypeScript, UI riprogettata. Migrazione e file unico rimandati. Fase 0 chiusa: prototipo cliccabile verificato con Chrome a 320 / 375 / 1024 px (quattro giri di revisione), D10–D14 approvate, D8–D9 da discutere. Nota: in WSL Playwright per Python non è installato, quindi `tests/test_cassa.py` qui non parte. Prossimo: Fase 1.
 
 - **2026-11-12 (2)** — Merge della PR #7, release `v4.2` creata dal browser, sito verificato alla v4.2. Resta l'aggiornamento del dispositivo del bar.
 
