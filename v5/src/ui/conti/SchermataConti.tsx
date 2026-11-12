@@ -1,4 +1,5 @@
 // Conti: due viste, conti aperti (ordinati per tavolo) e crediti (D8).
+import { totaleCrediti } from '../../dominio/chiusura';
 import { perSocio, socioDi, totale } from '../../dominio/comanda';
 import { contiOrdinati } from '../../dominio/conti';
 import { euro } from '../../dominio/formato';
@@ -64,7 +65,7 @@ export function SchermataConti() {
           <div className="flex flex-col gap-0.5 rounded-xl bg-lav-2 px-3 py-2.5 shadow-[inset_0_0_0_1px_theme(colors.lav.3)]">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-gesso-dim">Totale sospesi</span>
             <strong data-testid="totale-crediti" className="font-display text-[22px] leading-tight text-ambra tabular-nums">
-              {euro(crediti.reduce((s, c) => s + totale(c.voci), 0))}
+              {euro(totaleCrediti(crediti))}
             </strong>
           </div>
           {crediti.length === 0

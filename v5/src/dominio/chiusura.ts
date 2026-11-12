@@ -1,8 +1,17 @@
 // Chiusura cassa: totali, fondo per il giorno dopo, conti che diventano crediti, archivio delle vendite.
+import { totale } from './comanda';
 import { dataBreve, dataCompleta, nuovoId, oraBreve } from './formato';
 import type { Centesimi, Chiusura, Credito, StatoDominio, Vendita, VenditaArchiviata } from './tipi';
 
-export const incassato = (vendite: readonly Vendita[]): Centesimi => vendite.reduce((s, v) => s + v.totale, 0);
+export const incassato = (vendite: readonly Pick<Vendita, 'totale'>[]): Centesimi => vendite.reduce((s, v) => s + v.totale, 0);
+
+export const totaleCrediti = (crediti: readonly Credito[]): Centesimi => crediti.reduce((s, c) => s + totale(c.voci), 0);
+
+/** Numeri della serata in corso, uguali in Storico, Chiusura e report. */
+export function riepilogoSerata(s: Pick<StatoDominio, 'fondo' | 'vendite' | 'crediti'>) {
+  const incasso = incassato(s.vendite);
+  return { fondo: s.fondo, incassato: incasso, inCassa: s.fondo + incasso, crediti: totaleCrediti(s.crediti) };
+}
 
 /** Fondo per il giorno dopo = fondo + incassato − consegnato, mai sotto zero. */
 export const fondoSuccessivo = (fondo: Centesimi, incasso: Centesimi, consegnato: Centesimi) =>

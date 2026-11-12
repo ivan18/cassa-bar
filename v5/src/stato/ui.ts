@@ -5,6 +5,9 @@ import type { OrigineIncasso } from './store';
 
 export type Sezione = 'cassa' | 'conti' | 'storico' | 'gestione';
 export type Foglio = null | 'comanda' | 'soci' | 'extra';
+export type VoceGestione = 'menu' | 'chiusura' | 'archivio';
+/** Report da mostrare: la serata in corso o una chiusura dell'archivio. */
+export type Report = { tipo: 'serata' } | { tipo: 'chiusura'; id: string };
 
 export interface Conferma {
   titolo: string;
@@ -35,6 +38,8 @@ export interface StatoUi {
   /** incasso aperto: da dove si incassa (comanda, conto aperto, credito) */
   incasso: OrigineIncasso | null;
   vistaConti: 'aperti' | 'crediti';
+  voceGestione: VoceGestione;
+  report: Report | null;
   gestioneSbloccata: boolean;
   ultimoTocco: number;
   conferma: Conferma | null;
@@ -52,6 +57,9 @@ export interface StatoUi {
   cambiaTutti(): void;
   scegliCategoria(c: string): void;
   scegliVistaConti(v: 'aperti' | 'crediti'): void;
+  apriVoceGestione(v: VoceGestione): void;
+  apriReport(r: Report): void;
+  chiudiReport(): void;
   chiediConferma(c: Conferma): void;
   chiudiConferma(): void;
   chiediPin(r: RichiestaPin): void;
@@ -64,6 +72,13 @@ export interface StatoUi {
   avvisa(testo: string): void;
 }
 
+/** Richiudendo la Gestione si torna al menu e si chiude il report di una chiusura (contiene le vendite archiviate). */
+const richiusa = (s: StatoUi) => ({
+  gestioneSbloccata: false,
+  voceGestione: 'menu' as const,
+  report: s.report?.tipo === 'chiusura' ? null : s.report,
+});
+
 let timerAvviso: ReturnType<typeof setTimeout> | undefined;
 
 export function creaUi() {
@@ -75,6 +90,8 @@ export function creaUi() {
     foglio: null,
     incasso: null,
     vistaConti: 'aperti',
+    voceGestione: 'menu',
+    report: null,
     gestioneSbloccata: false,
     ultimoTocco: 0,
     conferma: null,
@@ -85,6 +102,8 @@ export function creaUi() {
       sezione,
       foglio: null,
       incasso: null,
+      report: null,
+      voceGestione: 'menu',
       gestioneSbloccata: sezione === 'gestione' ? s.gestioneSbloccata : false,
     })),
     apriFoglio: foglio => set({ foglio }),
@@ -96,17 +115,20 @@ export function creaUi() {
     cambiaTutti: () => set(s => ({ tutti: !s.tutti })),
     scegliCategoria: categoria => set({ categoria }),
     scegliVistaConti: vistaConti => set({ vistaConti }),
+    apriVoceGestione: voceGestione => set({ voceGestione }),
+    apriReport: report => set({ report }),
+    chiudiReport: () => set({ report: null }),
     chiediConferma: conferma => set({ conferma }),
     chiudiConferma: () => set({ conferma: null }),
     chiediPin: richiestaPin => set({ richiestaPin }),
     chiudiPin: () => set({ richiestaPin: null }),
     sbloccaGestione: adesso => set({ gestioneSbloccata: true, ultimoTocco: adesso }),
-    bloccaGestione: () => set({ gestioneSbloccata: false }),
+    bloccaGestione: () => set(richiusa),
     tocco: adesso => set({ ultimoTocco: adesso }),
     controllaBlocco: adesso => {
       const s = get();
       if (s.gestioneSbloccata && adesso - s.ultimoTocco >= BLOCCO_GESTIONE_MS) {
-        set({ gestioneSbloccata: false });
+        set(richiusa);
         get().avvisa('Gestione bloccata dopo 2 minuti senza tocchi.');
       }
     },

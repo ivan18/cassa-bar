@@ -8,8 +8,10 @@ import { cx } from './comuni/cx';
 import { Finestre } from './comuni/Finestre';
 import { SchermataConti } from './conti/SchermataConti';
 import { FoglioIncasso } from './incasso/FoglioIncasso';
+import { SchermataGestione } from './gestione/SchermataGestione';
 import { Navigazione } from './Navigazione';
-import { SchermataGestione, SchermataStorico } from './SchermateAltre';
+import { FoglioReport } from './report/Report';
+import { SchermataStorico } from './storico/SchermataStorico';
 
 /** Ogni tocco conta come attività; ogni 5 secondi si controlla il blocco automatico della Gestione (D8). */
 function useBloccoAutomatico() {
@@ -59,6 +61,7 @@ export function App() {
       <div className="[grid-area:nav] lg:min-h-0"><Navigazione /></div>
       <FogliCassa />
       <FoglioIncasso />
+      <FoglioReport />
       <Finestre />
     </div>
   );
