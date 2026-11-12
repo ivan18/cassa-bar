@@ -71,7 +71,7 @@ export function Comanda({ nelFoglio = false }: { nelFoglio?: boolean }) {
         </div>
         <div className="grid grid-cols-[1fr_1.4fr] gap-2">
           <Pulsante data-testid="salva-conto" onClick={salvaConto} disabled={voci.length === 0}>Salva conto</Pulsante>
-          <Pulsante data-testid="incassa" variante="principale" onClick={() => ui.getState().apriFoglio('incasso')} disabled={voci.length === 0}>Incassa</Pulsante>
+          <Pulsante data-testid="incassa" variante="principale" onClick={() => ui.getState().apriIncasso({ tipo: 'comanda' })} disabled={voci.length === 0}>Incassa</Pulsante>
         </div>
       </div>
     </div>
@@ -93,7 +93,7 @@ export function BarraComanda() {
         <strong className="font-display text-[26px] leading-tight tabular-nums">{euro(totale(voci))}</strong>
       </button>
       <Pulsante onClick={salvaConto} disabled={voci.length === 0}>Salva</Pulsante>
-      <Pulsante variante="principale" onClick={() => ui.getState().apriFoglio('incasso')} disabled={voci.length === 0}>Incassa</Pulsante>
+      <Pulsante variante="principale" onClick={() => ui.getState().apriIncasso({ tipo: 'comanda' })} disabled={voci.length === 0}>Incassa</Pulsante>
     </div>
   );
 }

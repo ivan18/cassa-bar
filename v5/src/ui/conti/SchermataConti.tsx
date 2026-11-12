@@ -1,5 +1,4 @@
 // Conti: due viste, conti aperti (ordinati per tavolo) e crediti (D8).
-// Incassa arriva con la Fase 4 (conti) e la Fase 5 (crediti); qui c'è il segnaposto.
 import { perSocio, socioDi, totale } from '../../dominio/comanda';
 import { contiOrdinati } from '../../dominio/conti';
 import { euro } from '../../dominio/formato';
@@ -29,7 +28,6 @@ export function SchermataConti() {
   const vista = useUi(s => s.vistaConti);
   const conti = useCassa(s => s.contiAperti);
   const crediti = useCassa(s => s.crediti);
-  const incassoInArrivo = () => ui.getState().apriFoglio('incasso');
 
   return (
     <>
@@ -52,7 +50,7 @@ export function SchermataConti() {
                 </div>
                 <VociPerSocio voci={c.voci} />
                 <div className="flex flex-wrap gap-2">
-                  <Pulsante variante="principale" className="flex-1" onClick={incassoInArrivo}>Incassa</Pulsante>
+                  <Pulsante variante="principale" className="flex-1" onClick={() => ui.getState().apriIncasso({ tipo: 'conto', tavolo: c.tavolo })}>Incassa</Pulsante>
                   <Pulsante onClick={() => modificaConto(c.tavolo)}>Modifica</Pulsante>
                   <Pulsante variante="pericolo" onClick={() => eliminaConto(c.tavolo)}>Elimina</Pulsante>
                 </div>
@@ -81,7 +79,7 @@ export function SchermataConti() {
                     </div>
                     <VociPerSocio voci={c.voci} />
                     <div className="flex flex-wrap gap-2">
-                      <Pulsante variante="principale" className="flex-1" onClick={incassoInArrivo}>Incassa credito</Pulsante>
+                      <Pulsante variante="principale" className="flex-1" onClick={() => ui.getState().apriIncasso({ tipo: 'credito', id: c.id })}>Incassa credito</Pulsante>
                       <Pulsante variante="pericolo" onClick={() => eliminaCredito(c.id)}>Elimina</Pulsante>
                     </div>
                   </article>

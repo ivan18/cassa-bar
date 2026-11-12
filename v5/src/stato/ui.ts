@@ -1,9 +1,10 @@
 // Stato dell'interfaccia: sezione, socio attivo, fogli e finestre aperti, PIN della Gestione. Non si salva.
 import { useStore } from 'zustand';
 import { createStore } from 'zustand/vanilla';
+import type { OrigineIncasso } from './store';
 
 export type Sezione = 'cassa' | 'conti' | 'storico' | 'gestione';
-export type Foglio = null | 'comanda' | 'soci' | 'extra' | 'incasso';
+export type Foglio = null | 'comanda' | 'soci' | 'extra';
 
 export interface Conferma {
   titolo: string;
@@ -31,6 +32,8 @@ export interface StatoUi {
   tutti: boolean;
   categoria: string;
   foglio: Foglio;
+  /** incasso aperto: da dove si incassa (comanda, conto aperto, credito) */
+  incasso: OrigineIncasso | null;
   vistaConti: 'aperti' | 'crediti';
   gestioneSbloccata: boolean;
   ultimoTocco: number;
@@ -41,6 +44,8 @@ export interface StatoUi {
   vai(sezione: Sezione): void;
   apriFoglio(f: Exclude<Foglio, null>): void;
   chiudiFoglio(): void;
+  apriIncasso(o: OrigineIncasso): void;
+  chiudiIncasso(): void;
   /** dopo il cambio di tavolo: socio automatico, TUTTI spento */
   azzeraSocio(): void;
   scegliSocio(socio: string): void;
@@ -68,6 +73,7 @@ export function creaUi() {
     tutti: false,
     categoria: 'Tutti',
     foglio: null,
+    incasso: null,
     vistaConti: 'aperti',
     gestioneSbloccata: false,
     ultimoTocco: 0,
@@ -78,10 +84,13 @@ export function creaUi() {
     vai: sezione => set(s => ({
       sezione,
       foglio: null,
+      incasso: null,
       gestioneSbloccata: sezione === 'gestione' ? s.gestioneSbloccata : false,
     })),
     apriFoglio: foglio => set({ foglio }),
     chiudiFoglio: () => set({ foglio: null }),
+    apriIncasso: incasso => set({ incasso, foglio: null }),
+    chiudiIncasso: () => set({ incasso: null }),
     azzeraSocio: () => set({ socioAttivo: null, tutti: false }),
     scegliSocio: socio => set({ socioAttivo: socio, tutti: false }),
     cambiaTutti: () => set(s => ({ tutti: !s.tutti })),

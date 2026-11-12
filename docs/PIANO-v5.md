@@ -4,7 +4,7 @@ Lavorare per fasi: per ogni fase un branch `feat/v5-…` aperto da `sviluppo/v5`
 
 Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
-**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). D8 e D9 decise; Fase 3 chiusa (Cassa e conti aperti, 65 test verdi). Prossimo passo: Fase 4 (incasso per quantità).
+**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). D8 e D9 decise; Fasi 3 e 4 chiuse (Cassa, conti, incasso per quantità; 72 test verdi). Prossimo passo: Fase 5 (chiusura, fondo, storico).
 
 ## Contesto
 
@@ -122,11 +122,15 @@ Resta com'è nella v4.2, salvo decisione diversa: "Salva conto" torna al Banco m
 - Differenze dal prototipo emerse dai test: i tavoli vanno su due righe da 4 fino a 479 px (a 375 px su una riga erano larghi 41 px, sotto i 44 raccomandati per le dita); il PIN si conferma con "Accedi" perché può avere più di 4 cifre.
 - Corretto anche: il messaggio d'errore della configurazione citava un PIN di esempio ("482915") che sarebbe finito nel codice pubblico.
 
-**☐ Fase 4 — Incasso per quantità**
-- Tutto selezionato all'apertura, preselezioni Intero tavolo / Quota socio / Azzera, + e −, contante con tastierino e tasti rapidi, resto, conferma sempre visibile; etichetta del pagatore nello storico; socio che esce; tavolo che si libera.
+**☑ Fase 4 — Incasso per quantità** — chiusa il 2026-11-12
+- ☑ `src/ui/incasso/FoglioIncasso.tsx`: tutto selezionato all'apertura; "Tavolo intero", quota di ogni socio, "Niente"; + e − per voce ("1 di 2"), "selezione manuale"; contante con tastierino e tasti rapidi (Esatto, € 5, 10, 20, 50); resto o "Mancano"; conferma sempre visibile con l'importo, disattivata se non è selezionato nulla.
+- ☑ Da tre origini (`incasso` nello stato dell'interfaccia): comanda in Cassa, conto aperto (Conti → Incassa), **credito** (Conti → Crediti → Incassa credito, anche parziale). L'incasso dei crediti era previsto in Fase 5: è lo stesso foglio, quindi è stato anticipato.
+- ☑ Dopo la conferma: avviso con chi ha pagato e resto; chi ha pagato tutto esce dal tavolo; a conto saldato il tavolo si libera e si torna al Banco. Il foglio non si chiude toccando fuori.
+- ☑ Su telefono contante e resto stanno affiancati sopra il tastierino: il resto si vede senza scorrere (verificato dai test a ogni larghezza).
+- ☑ Test: `e2e/incasso.spec.ts` (8 scenari, ripresi dalla v4.2) e controlli dell'incasso in `responsive`. Totale 72 verdi con PIN 1234 e 482915. Lo Storico che mostra le vendite arriva in Fase 5: per ora i test leggono le vendite salvate.
 
 **☐ Fase 5 — Crediti, chiusura, fondo, storico**
-- Crediti (incasso anche parziale, Elimina con PIN), fondo cassa manuale e Azzera, chiusura (cassiere, consegnato, causale, anteprima fondo, conti → crediti, tavoli liberati, archivio con vendite, proposta di stampa), archivio con Report ed Elimina, Storico.
+- Crediti già fatti (incasso parziale in Fase 4, Elimina con PIN in Fase 3); fondo cassa manuale e Azzera, chiusura (cassiere, consegnato, causale, anteprima fondo, conti → crediti, tavoli liberati, archivio con vendite, proposta di stampa), archivio con Report ed Elimina, Storico.
 
 **☐ Fase 6 — Gestione e dati**
 - Aree protette da PIN, intestazione modificabile, Prodotti e Soci, Esporta/Importa backup (formato v5), Carica configurazione (stesso formato `cassa-bar-config` v1, rifiuto totale se non valido), report stampabile della serata e della chiusura.

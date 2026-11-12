@@ -1,4 +1,4 @@
-// Fogli della Cassa: comanda (telefono), soci al tavolo con filtro A–Z, battuta extra (D9), incasso (Fase 4).
+// Fogli della Cassa: comanda (telefono), soci al tavolo con filtro A–Z, battuta extra (D9).
 import { useState } from 'react';
 import { iniziale, euro, leggiImporto } from '../../dominio/formato';
 import { cassa, useCassa } from '../../stato/cassa';
@@ -103,13 +103,6 @@ function FoglioExtra() {
   );
 }
 
-function FoglioIncasso() {
-  return (
-    <Foglio titolo="Incasso" onChiudi={chiudi} testId="foglio-incasso">
-      <p className="text-gesso-dim">L'incasso per quantità arriva nella Fase 4 della v5.</p>
-    </Foglio>
-  );
-}
 
 export function FogliCassa() {
   const foglio = useUi(s => s.foglio);
@@ -125,7 +118,6 @@ export function FogliCassa() {
       )}
       {foglio === 'soci' && <FoglioSoci />}
       {foglio === 'extra' && <FoglioExtra />}
-      {foglio === 'incasso' && <FoglioIncasso />}
     </>
   );
 }
