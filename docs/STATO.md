@@ -79,6 +79,7 @@ Nessuna.
 
 Una riga per sessione, la più recente in alto: cosa è stato fatto e cosa è rimasto a metà.
 
+- **2026-11-12 (8)** — PR #18 unita. Si passa allo sviluppo trunk-based: trunk `sviluppo/v5`, rami brevi con PR e merge appena i test sono verdi (`CLAUDE.md` aggiornato, insieme alla regola "prima il prototipo, poi il codice"). Prossimo: punti aperti (file unico / PWA, import dei backup v4).
 - **2026-11-12 (7)** — Fase 7 sul branch `feat/v5-collaudo`: tabella di parità con la v4.2 in `PIANO-v5.md`; aggiunti i test del filtro per categoria e corretto il filtro che restava su una categoria senza prodotti. Su segnalazione dell'utente: avviso con tre scelte quando si cambia tavolo con voci non salvate e avviso nella chiusura (D15), aggiunto anche al prototipo. Nuovo flusso: le modifiche di interfaccia passano prima dal prototipo, poi dal codice. 107 test verdi con PIN 1234 e 482915. Prossimo: discutere i punti aperti.
 - **2026-11-12 (6)** — Fase 6 sul branch `feat/v5-gestione`: Prodotti, Soci, Dati in Gestione, intestazione modificabile dal nome, avviso di memoria piena che sparisce al primo salvataggio riuscito. Verificato con Chrome a 320 / 375 / 1024 px. 101 test verdi. Prossimo: Fase 7.
 - **2026-11-12 (5)** — Fase 5 sul branch `feat/v5-chiusura`: Storico, chiusura in tre passi (fondo con Imposta / Azzera, consegna, conferma, proposta di stampa), archivio chiusure, report stampabile (anticipato dalla Fase 6; la copia di stampa sta fuori dall'app per non essere tagliata). Verificato con Chrome a 320 / 375 / 1024 px. 89 test verdi. Prossimo: Fase 6.
