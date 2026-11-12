@@ -1,4 +1,5 @@
 // Azioni dell'interfaccia che coinvolgono entrambi gli store (dati e UI): un solo posto, chiamate dai componenti.
+import { leggiBackup } from '../dominio/backup';
 import type { DatiChiusura } from '../dominio/chiusura';
 import { destinatari, totale } from '../dominio/comanda';
 import type { Tavolo } from '../dominio/costanti';
@@ -127,4 +128,104 @@ export function eliminaChiusura(id: string) {
       ui.getState().avvisa('Chiusura eliminata.');
     },
   });
+}
+
+export function eliminaProdotto(id: string, dopo: () => void) {
+  const p = cassa.getState().prodotti.find(x => x.id === id);
+  if (!p) return;
+  ui.getState().chiediConferma({
+    titolo: `Eliminare ${p.nome}?`,
+    testo: 'Il prodotto sparisce dal listino. Le voci già battute restano nei conti.',
+    si: 'Elimina',
+    no: 'Annulla',
+    pericolo: true,
+    azione: () => {
+      cassa.getState().eliminaProdotto(id);
+      dopo();
+      ui.getState().avvisa(`${p.nome} eliminato.`);
+    },
+  });
+}
+
+/** Iscrive un socio; true se il campo si può svuotare. */
+export function iscriviSocio(nome: string): boolean {
+  const esito = cassa.getState().aggiungiSocio(nome);
+  const pulito = nome.trim().replace(/\s+/g, ' ');
+  if (esito === 'vuoto') { ui.getState().avvisa('Scrivi il nome del socio.'); return false; }
+  ui.getState().avvisa(esito === 'aggiunto' ? `${pulito} iscritto.` : `${pulito} è già iscritto.`);
+  return esito === 'aggiunto';
+}
+
+/** Elimina un socio dall'anagrafica e dai tavoli (D10), con conferma. */
+export function eliminaSocio(nome: string) {
+  const tavoli = Object.entries(cassa.getState().seduti).filter(([, m]) => m?.includes(nome)).map(([t]) => t);
+  ui.getState().chiediConferma({
+    titolo: `Eliminare ${nome}?`,
+    testo: tavoli.length
+      ? `${nome} è seduto al ${tavoli.join(', ')}: verrà tolto anche dal tavolo. Le voci già battute restano nel conto.`
+      : `${nome} viene tolto dall'anagrafica.`,
+    si: 'Elimina',
+    no: 'Annulla',
+    pericolo: true,
+    azione: () => {
+      cassa.getState().eliminaSocio(nome);
+      ui.getState().avvisa(`${nome} eliminato.`);
+    },
+  });
+}
+
+/** Scarica il backup come file JSON (Blob + link temporaneo: funziona offline). */
+export function esportaBackup() {
+  const { nomeFile, contenuto } = cassa.getState().esportaBackup(new Date());
+  const url = URL.createObjectURL(new Blob([contenuto], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomeFile;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  ui.getState().chiediConferma({
+    titolo: 'Backup esportato',
+    testo: `File ${nomeFile}\n\nContiene prodotti, soci, conti aperti, crediti, storico, chiusure archiviate, fondo cassa, intestazione e il PIN solo come hash.\n\nConservalo in un posto privato: contiene i nomi dei soci.`,
+    si: 'OK',
+  });
+}
+
+const rifiutato = (titolo: string, errore: string) => ui.getState().chiediConferma({
+  titolo,
+  testo: `${errore.charAt(0).toUpperCase()}${errore.slice(1)}\nNessuna modifica applicata.`,
+  si: 'OK',
+  pericolo: true,
+});
+
+/** Importa un backup: controlla il file, chiede conferma, poi sostituisce i dati del dispositivo. */
+export function importaBackup(testo: string, nomeFile: string) {
+  const letto = leggiBackup(testo);
+  if (!letto.ok) return rifiutato('Backup non importato', letto.errore);
+  ui.getState().chiediConferma({
+    titolo: 'Sostituire i dati attuali?',
+    testo: `Il backup ${nomeFile} sostituisce prodotti, soci, conti, crediti, storico e chiusure di questo dispositivo. Se il backup non contiene il PIN, il PIN del dispositivo non cambia.`,
+    si: 'Ripristina',
+    no: 'Annulla',
+    pericolo: true,
+    azione: () => {
+      const esito = cassa.getState().importaBackup(testo);
+      if (!esito.ok) return rifiutato('Backup non importato', esito.errore);
+      ui.getState().azzeraSocio();
+      ui.getState().chiediConferma({ titolo: 'Backup ripristinato', testo: 'I dati del backup sono ora su questo dispositivo.', si: 'OK' });
+    },
+  });
+}
+
+export async function caricaConfigurazione(testo: string) {
+  const esito = await cassa.getState().caricaConfigurazione(testo);
+  if (!esito.ok) return rifiutato('Configurazione non caricata', esito.errore);
+  ui.getState().chiediConferma({ titolo: 'Configurazione caricata', testo: esito.valore.join('\n'), si: 'OK' });
+}
+
+/** Dall'avviso di memoria piena all'archivio delle chiusure (D14); se serve, prima il PIN. */
+export function liberaSpazio() {
+  ui.getState().vai('gestione');
+  ui.getState().apriVoceGestione('archivio');
 }

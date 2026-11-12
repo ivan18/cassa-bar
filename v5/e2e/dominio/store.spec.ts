@@ -81,14 +81,20 @@ test('i dati si salvano in un\'unica chiave e si ritrovano al riavvio; lo stato 
   expect(secondo.s().memoriaPiena).toBe(false);
 });
 
-test('memoria piena: l\'app non si blocca e lo segnala', async () => {
+test('memoria piena: l\'app non si blocca, lo segnala e smette al primo salvataggio riuscito', async () => {
   const base = archivioInMemoria();
   let segnalata = 0;
-  const store = creaStore({ archivio: creaArchivio(base, () => segnalata++), pinBuild: await creaPin('1234') });
+  let salvati = 0;
+  const store = creaStore({ archivio: creaArchivio(base, () => segnalata++, () => salvati++), pinBuild: await creaPin('1234') });
   base.piena = true;
   store.getState().aggiungiSocio('Sara'); // il salvataggio fallisce, lo store continua a funzionare
   expect(store.getState().soci).toContain('Sara');
   expect(segnalata).toBeGreaterThan(0);
+  const prima = salvati;
+  base.piena = false;
+  store.getState().aggiungiSocio('Elena');
+  expect(salvati).toBeGreaterThan(prima);
+  expect(JSON.parse(base.dati.get(CHIAVE_ARCHIVIO)!).state.soci).toContain('Sara');
 });
 
 test('PIN: vale quello della build finché la configurazione non ne imposta uno', async () => {

@@ -45,7 +45,8 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 - ☑ Fase 3: navigazione a 4 sezioni, Cassa (tavoli, soci, prodotti, extra, comanda), Conti aperti e crediti con Elimina sotto PIN, Gestione con PIN unico e blocco automatico; 65 test verdi.
 - ☑ Fase 4: incasso per quantità da comanda, conto aperto e credito (preselezioni, contante, resto, chi ha pagato, socio che esce); 72 test verdi.
 - ☑ Fase 5: Storico, chiusura cassa in tre passi con fondo manuale, archivio chiusure con Report ed Elimina, report stampabile della serata e della chiusura; 89 test verdi.
-- ☐ Fasi 6–7 (dettaglio nel piano). Prossima: Fase 6, Prodotti, Soci e Dati in Gestione.
+- ☑ Fase 6: Prodotti (colore da tavolozza), Soci, Dati (backup, configurazione, intestazione, memoria), avviso di memoria piena; 101 test verdi.
+- ☐ Fase 7 (dettaglio nel piano): collaudo di parità con `FUNZIONALITA.md`.
 - Rimandati: migrazione v4.2 → v5 e import dei backup v4; file unico offline / PWA / pubblicazione (da discutere a parità raggiunta).
 
 ### Manutenzione (non urgenti)
@@ -77,6 +78,7 @@ Nessuna.
 
 Una riga per sessione, la più recente in alto: cosa è stato fatto e cosa è rimasto a metà.
 
+- **2026-11-12 (6)** — Fase 6 sul branch `feat/v5-gestione`: Prodotti, Soci, Dati in Gestione, intestazione modificabile dal nome, avviso di memoria piena che sparisce al primo salvataggio riuscito. Verificato con Chrome a 320 / 375 / 1024 px. 101 test verdi. Prossimo: Fase 7.
 - **2026-11-12 (5)** — Fase 5 sul branch `feat/v5-chiusura`: Storico, chiusura in tre passi (fondo con Imposta / Azzera, consegna, conferma, proposta di stampa), archivio chiusure, report stampabile (anticipato dalla Fase 6; la copia di stampa sta fuori dall'app per non essere tagliata). Verificato con Chrome a 320 / 375 / 1024 px. 89 test verdi. Prossimo: Fase 6.
 - **2026-11-12 (4)** — Flusso di lavoro della v5 sul branch `sviluppo/v5` (PR #11 su `main`). Fase 1 sul branch `feat/v5-scheletro`: scheletro di `v5/` e prima suite Playwright in TypeScript (10 test verdi, anche con PIN diverso; prova negativa sul blocco della rete). Fase 2 sul branch `feat/v5-dominio`: dominio e store, 52 test verdi, prova con errori introdotti di proposito. Decise D8 e D9. Fase 3 sul branch `feat/v5-cassa`: schermate Cassa e Conti, 65 test verdi. Fase 4 sul branch `feat/v5-incasso`: incasso per quantità (anche dei crediti), resto sempre visibile su telefono, 72 test verdi. Prossimo: Fase 5.
 

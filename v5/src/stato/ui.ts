@@ -4,8 +4,8 @@ import { createStore } from 'zustand/vanilla';
 import type { OrigineIncasso } from './store';
 
 export type Sezione = 'cassa' | 'conti' | 'storico' | 'gestione';
-export type Foglio = null | 'comanda' | 'soci' | 'extra';
-export type VoceGestione = 'menu' | 'chiusura' | 'archivio';
+export type Foglio = null | 'comanda' | 'soci' | 'extra' | 'intestazione';
+export type VoceGestione = 'menu' | 'chiusura' | 'archivio' | 'prodotti' | 'soci' | 'dati';
 /** Report da mostrare: la serata in corso o una chiusura dell'archivio. */
 export type Report = { tipo: 'serata' } | { tipo: 'chiusura'; id: string };
 

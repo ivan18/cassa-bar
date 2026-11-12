@@ -4,7 +4,7 @@ Lavorare per fasi: per ogni fase un branch `feat/v5-…` aperto da `sviluppo/v5`
 
 Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
-**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). D8 e D9 decise; Fasi 3 e 4 chiuse (Cassa, conti, incasso per quantità). Fase 5 chiusa (chiusura in tre passi, fondo, archivio, Storico, report stampabile; 89 test verdi). Prossimo passo: Fase 6 (Prodotti, Soci, Dati).
+**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). D8 e D9 decise; Fasi 3 e 4 chiuse (Cassa, conti, incasso per quantità). Fase 5 chiusa (chiusura in tre passi, fondo, archivio, Storico, report stampabile). Fase 6 chiusa (Prodotti, Soci, Dati, intestazione, memoria piena; 101 test verdi). Prossimo passo: Fase 7 (collaudo di parità).
 
 ## Contesto
 
@@ -139,8 +139,14 @@ Resta com'è nella v4.2, salvo decisione diversa: "Salva conto" torna al Banco m
 - ☑ Dominio: `riepilogoSerata` e `totaleCrediti` (stessi numeri in Storico, Chiusura e report), `descriviVoci` ("2× Dreher 66 cl (Andrea), 1× Caffè").
 - ☑ Test: `e2e/storico.spec.ts`, `e2e/chiusura.spec.ts` (tre passi, fondo, Azzera, consegna oltre il contante, chiusura a metà, archivio, blocco automatico con orologio finto, stampa con `emulateMedia('print')`), nuovi casi del dominio e di `responsive`. Totale 89 verdi con PIN 1234 e 482915.
 
-**☐ Fase 6 — Gestione e dati**
-- Intestazione modificabile, Prodotti e Soci, Esporta/Importa backup (formato v5), Carica configurazione (stesso formato `cassa-bar-config` v1, rifiuto totale se non valido), avviso di memoria piena che porta all'archivio (D14).
+**☑ Fase 6 — Gestione e dati** — chiusa il 2026-11-12
+- ☑ Menu della Gestione completo: Chiusura cassa, Archivio chiusure, Prodotti, Soci, Dati.
+- ☑ Prodotti (`src/ui/gestione/Prodotti.tsx`): listino per categoria; scheda con nome, prezzo (maggiore di zero), categoria, colore dalla tavolozza (D10) e anteprima del pulsante della Cassa; Salva disattivato finché i dati non sono validi; Elimina con conferma (le voci già battute restano nei conti).
+- ☑ Soci (`Soci.tsx`): iscrizione (spazi ripuliti, doppioni ignorati senza differenze di maiuscole), filtro A–Z (componente comune `FiltroAZ`, lo stesso del foglio dei soci al tavolo), tavolo dove il socio è seduto, Elimina con conferma che lo toglie anche dal tavolo (D10).
+- ☑ Dati (`Dati.tsx`): Esporta backup (file `backup_cassa_aaaa-mm-gg.json` scaricato con un Blob, PIN solo come hash); Importa backup (il file si controlla prima, poi si chiede conferma: config e backup v4 vengono rifiutati con il motivo); Carica configurazione (soci senza doppioni e PIN, tutto o niente); Intestazione; memoria usata dal dispositivo con barra.
+- ☑ Intestazione modificabile anche toccando il nome in cima a ogni sezione, senza PIN come nella v4.2; un campo vuoto lascia il valore attuale.
+- ☑ Memoria piena (D14): avviso in cima a ogni sezione con "Libera spazio" (porta all'archivio, dopo il PIN) e avviso breve quando succede; sparisce al primo salvataggio riuscito (`creaArchivio` ora segnala anche i salvataggi riusciti).
+- ☑ Test: `e2e/dati.spec.ts` (prodotti, soci, intestazione, backup con download e reimport, configurazione, memoria piena simulata), caso del dominio sulla memoria, `responsive` esteso. Totale 101 verdi con PIN 1234 e 482915; nessun PIN in chiaro nel bundle.
 
 **☐ Fase 7 — Collaudo di parità**
 - Tabella in `docs/PIANO-v5.md`: ogni voce di `docs/FUNZIONALITA.md` → test in `v5/e2e/` che la copre (o decisione D8+ che la cambia).
