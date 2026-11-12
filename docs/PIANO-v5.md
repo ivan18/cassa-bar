@@ -4,7 +4,7 @@ Lavorare per fasi: per ogni fase un branch `feat/v5-…` aperto da `sviluppo/v5`
 
 Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
-**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). D8 e D9 decise; Fasi 3 e 4 chiuse (Cassa, conti, incasso per quantità). Fase 5 chiusa (chiusura in tre passi, fondo, archivio, Storico, report stampabile). Fase 6 chiusa (Prodotti, Soci, Dati, intestazione, memoria piena; 101 test verdi). Prossimo passo: Fase 7 (collaudo di parità).
+**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). D8 e D9 decise; Fasi 3 e 4 chiuse (Cassa, conti, incasso per quantità). Fase 5 chiusa (chiusura in tre passi, fondo, archivio, Storico, report stampabile). Fase 6 chiusa (Prodotti, Soci, Dati, intestazione, memoria piena). Fase 7 chiusa: parità con la v4.2 verificata voce per voce (103 test verdi). Restano i punti aperti: file unico / PWA / pubblicazione e import dei backup v4.
 
 ## Contesto
 
@@ -148,9 +148,74 @@ Resta com'è nella v4.2, salvo decisione diversa: "Salva conto" torna al Banco m
 - ☑ Memoria piena (D14): avviso in cima a ogni sezione con "Libera spazio" (porta all'archivio, dopo il PIN) e avviso breve quando succede; sparisce al primo salvataggio riuscito (`creaArchivio` ora segnala anche i salvataggi riusciti).
 - ☑ Test: `e2e/dati.spec.ts` (prodotti, soci, intestazione, backup con download e reimport, configurazione, memoria piena simulata), caso del dominio sulla memoria, `responsive` esteso. Totale 101 verdi con PIN 1234 e 482915; nessun PIN in chiaro nel bundle.
 
-**☐ Fase 7 — Collaudo di parità**
-- Tabella in `docs/PIANO-v5.md`: ogni voce di `docs/FUNZIONALITA.md` → test in `v5/e2e/` che la copre (o decisione D8+ che la cambia).
-- Responsive a 360 / 375 / 768 / 1024 / 1280 px senza sforamenti; nessuna richiesta di rete; nessuna password in chiaro nel bundle.
+**☑ Fase 7 — Collaudo di parità** — chiusa il 2026-11-12
+- ☑ Tabella qui sotto: ogni voce di `docs/FUNZIONALITA.md` (v4.2) con il test della v5 che la copre, la decisione che la cambia o il punto aperto che la rimanda. I test sono in `v5/e2e/` (`dominio/` = senza browser).
+- ☑ Garanzie trasversali, in ogni test nel browser (`e2e/supporto.ts`): nessuna richiesta di rete verso l'esterno, nessun errore JavaScript o in console, localStorage vuoto all'inizio. Responsive a 320 / 360 / 375 / 768 / 1024 / 1280 px senza sforamenti (`responsive`). Nessun PIN in chiaro nel bundle (`avvio`), provato con due PIN diversi.
+- ☑ Lacuna trovata e chiusa: il filtro per categoria della Cassa non aveva test. Scrivendolo è emerso un difetto: una categoria rimasta senza prodotti lasciava la Cassa vuota con un filtro senza pulsante; ora si torna a "Tutti" (`cassa`, due test nuovi).
+
+Legenda: ☑ coperta da test · ↻ cambiata da una decisione approvata · ⏳ rimandata a un punto aperto.
+
+| Funzionalità v4.2 | v5 | Test |
+|---|---|---|
+| **Generali** | | |
+| Intestazione modificabile con un clic sul nome (Annulla / Salva) | ☑ anche da Gestione → Dati | `dati` › intestazione |
+| Sette schede sempre visibili, badge conti e crediti | ↻ D8: 4 sezioni; badge conti (rosso) e crediti (ambra) su Conti | `responsive`, `conti`, `chiusura` |
+| Aree protette da PIN; PIN anche per Elimina su conti e crediti; tastierino; hash SHA-256; PIN da configurazione/backup, altrimenti della build; nessun suggerimento | ☑ ↻ D8: un PIN per tutta la Gestione, che si richiude da sola | `gestione` (3 test), `conti` › Elimina conto, `dominio/dati` › PIN, `dominio/store` › PIN |
+| Dati nel localStorage, offline, installabile come PWA | ☑ dati su una chiave `cassa5_stato`; ⏳ offline/PWA: punto aperto 1 | `cassa` › Salva conto (ricaricamento), `dominio/store` › chiave unica; ogni test blocca la rete |
+| **Cassa** | | |
+| Banco + Tavolo 1–6; tavolo occupato con soci seduti o conto aperto; il tavolo carica conto e primo socio seduto | ☑ | `cassa` › soci al tavolo, › Salva conto; `conti` › Modifica |
+| Soci al tavolo: filtro A–Z (lettere vuote spente), un tocco siede o alza, contatore | ☑ | `cassa` › soci al tavolo |
+| Socio attivo: ogni prodotto va al socio scelto | ☑ | `cassa` › comanda |
+| Tavolo Generico: voci senza socio, in "Intero tavolo" e in nessuna quota | ☑ | `cassa` › comanda, `dominio/comanda` › Tavolo generico, `incasso` › quota socio |
+| Modalità TUTTI | ☑ | `cassa` › comanda, `dominio/comanda` › TUTTI |
+| Filtro per categoria (Tutti + categorie presenti), pulsanti con colore e prezzo | ☑ | `cassa` › categorie (2 test) |
+| Battuta extra: 20 importi rapidi, descrizione facoltativa in maiuscolo, anche in TUTTI | ↻ D9: foglio con 4 importi rapidi e tastierino | `cassa` › extra, `dominio/comanda` › battuta extra |
+| Comanda: voci per socio, + e − (a zero sparisce), riassegnazione, Svuota, totale | ☑ Svuota chiede conferma | `cassa` › quantità e riassegnazione, `dominio/comanda` (4 test) |
+| Salva conto: salva o aggiorna e torna al Banco | ☑ | `cassa` › Salva conto, `dominio/chiusura` › conti aperti |
+| Barra fissa su telefono e tablet in verticale | ↻ D11: barra sotto i 1024 px, pannello da 1024 | `cassa` › barra della comanda, `responsive` |
+| **Incasso** | | |
+| Tutto selezionato all'apertura | ☑ | `incasso` › si apre con tutto selezionato |
+| Intero tavolo, quota socio, Azzera selezione; + e −; "Selezione manuale" | ☑ "Azzera" si chiama "Niente" | `incasso` › quota socio, › selezione manuale, › Niente |
+| Totale da incassare e resto | ☑ anche "Mancano" | `incasso` › contante dal tastierino |
+| Tastierino con decimali e cancella; Esatto, € 5, 10, 20, 50 | ☑ | `incasso` › Esatto, › quota socio, › tastierino |
+| Conferma sempre visibile, con l'importo, disattivata se non c'è niente | ☑ | `incasso` › Niente, `responsive` (conferma in vista a ogni larghezza) |
+| Chi ha pagato: Intero tavolo, socio, "Nome (parziale)", "Parziale", "Credito del gg/mm" | ☑ | `incasso` (4 test), `dominio/incasso` › le cinque etichette |
+| Voci non pagate nel conto; socio che esce; tavolo libero a conto saldato | ☑ | `incasso` › quota socio, `dominio/incasso` › chi ha pagato tutto esce, `dominio/store` › una serata |
+| **Conti aperti** | | |
+| Ordinati per tavolo, con ora, totale, voci per socio | ☑ | `conti` › ordinati per tavolo |
+| Modifica, Incassa, Elimina con PIN | ☑ | `conti` (2 test), `incasso` › da un conto aperto |
+| **Crediti** | | |
+| Alla chiusura i conti aperti diventano crediti (data della chiusura, ora del conto) | ☑ | `chiusura` › tre passi, `dominio/chiusura` › chiusura |
+| Totale dei sospesi; tavolo, data, voci per socio, totale | ☑ | `conti` › crediti |
+| Incassa credito, anche parziale | ☑ | `incasso` › da un credito, `dominio/store` › credito |
+| Elimina con PIN; consultazione e incasso liberi | ☑ | `conti` › crediti |
+| **Chiusura cassa** | | |
+| Riepiloghi: fondo iniziale, incassato, in cassa | ☑ | `chiusura` › tre passi |
+| Fondo manuale: Imposta, Azzera con conferma | ☑ foglio con tastierino | `chiusura` › tre passi, › Azzera |
+| Cassiere, consegnato (predefinito: tutto l'incasso), causale, anteprima del fondo | ↻ D12: tre passi; cassiere e causale possono restare vuoti | `chiusura` › tre passi, › consegna vuota, `dominio/chiusura` › fondo per domani |
+| Conferma con conti aperti; archivio con le vendite; nuovo fondo; Storico vuoto; conti → crediti; tavoli liberi; avviso con proposta di stampa | ↻ D12: i conti aperti sono annunciati al passo 1 e riepilogati al passo 3 | `chiusura` › tre passi, `dominio/chiusura` (2 test) |
+| Archivio: Report (solo totali per le chiusure vecchie), Elimina con conferma | ↻ D14: voce propria in Gestione | `chiusura` › archivio, › blocco automatico |
+| Esporta backup (crediti e hash del PIN, mai in chiaro) | ☑ | `dati` › backup, `dominio/dati` › backup |
+| Importa backup; backup senza PIN non cambia il PIN | ☑ | `dati` › backup, `dominio/dati` › backup senza PIN, `dominio/store` › backup |
+| Backup delle versioni precedenti importabili (fondo 0 rispettato) | ⏳ punto aperto 2: oggi la v5 li riconosce e li rifiuta con il motivo | `dati` › backup (rifiuto del v4), `dominio/dati` › file sbagliati |
+| Carica configurazione: soci senza doppioni, PIN come hash, file non valido rifiutato per intero | ☑ | `dati` › configurazione, `dominio/dati` (2 test), `dominio/store` (2 test) |
+| **Prodotti** | | |
+| Aggiunta, modifica, eliminazione (nome, categoria, prezzo); categorie fisse | ☑ ↻ D10: colore dalla tavolozza, conferma prima di eliminare | `dati` › prodotti, `dominio/anagrafiche` › prodotti |
+| **Soci** | | |
+| Iscrizione ed eliminazione, doppioni ignorati, ordine alfabetico | ☑ ↻ D10: conferma; il socio eliminato lascia i tavoli | `dati` › soci, `dominio/anagrafiche` (4 test) |
+| Caricamento in blocco dal file di configurazione | ☑ | `dati` › configurazione |
+| **Storico** | | |
+| Vendite dall'ultima chiusura: ora, tavolo, chi ha pagato, voci, totale | ☑ con fondo, incassato, in cassa in cima | `storico` (2 test) |
+| Stampa report della serata (fondo, incassato, in cassa, crediti, tabelle); offline | ☑ anteprima in un foglio; in stampa solo il report | `storico` › report della serata |
+| **Limiti della v4.2** | | |
+| Solo contanti; report con la stampa del browser (iPhone: Safari) | ☑ invariato; la nota su iPhone è sotto l'anteprima | — |
+| L'archivio cresce; avviso di memoria piena | ☑ ↻ D14: avviso in ogni sezione con "Libera spazio", barra della memoria in Dati | `dati` › memoria piena, `dominio/store` › memoria piena |
+| Storico e Crediti senza PIN; un solo PIN | ☑ | `storico`, `conti` |
+| Voci del socio generico "Socio" delle versioni vecchie | ⏳ punto aperto 2 (riguarda solo i dati importati) | — |
+| Nuovi prodotti tutti color ambra | ↻ D10: risolto | `dati` › prodotti |
+| Socio eliminato resta seduto | ↻ D10: risolto | `dati` › soci, `dominio/store` |
+| Salva conto lascia il tavolo occupato | ☑ invariato (comportamento voluto) | `cassa` › Salva conto |
+| PIN controllato nel browser, deterrente e non protezione | ☑ invariato: nel bundle solo salt e hash | `avvio` › PIN non in chiaro |
 
 ## Punti aperti (dopo la Fase 7, da discutere con l'utente)
 1. **File unico offline, PWA e pubblicazione**: come ottenere un solo HTML da Vite (script nostro o plugin), service worker, manifest, passaggio della root di Pages dalla v4.2 alla v5.

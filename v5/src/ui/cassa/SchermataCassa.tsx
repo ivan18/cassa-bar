@@ -89,8 +89,10 @@ function ChiOrdina() {
 
 function Prodotti() {
   const prodotti = useCassa(s => s.prodotti);
-  const categoria = useUi(s => s.categoria);
+  const scelta = useUi(s => s.categoria);
   const categorie = ['Tutti', ...new Set(prodotti.map(p => p.categoria))];
+  // una categoria rimasta senza prodotti (es. dopo un'eliminazione) non ha più il suo pulsante: si torna a Tutti
+  const categoria = categorie.includes(scelta) ? scelta : 'Tutti';
   const elenco = prodotti.filter(p => categoria === 'Tutti' || p.categoria === categoria);
 
   return (

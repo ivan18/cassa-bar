@@ -1,4 +1,4 @@
-import { batti, comanda, expect, scegliTavolo, siediSoci, statoSalvato, test } from './supporto';
+import { batti, comanda, digitaPin, expect, PIN, scegliTavolo, siediSoci, statoSalvato, test } from './supporto';
 
 test('soci al tavolo: filtro A–Z con lettere vuote spente; il primo seduto diventa il socio attivo', async ({ app }) => {
   const { page } = app;
@@ -115,4 +115,32 @@ test.describe('telefono', () => {
     await barra.getByRole('button', { name: 'Salva', exact: true }).click();
     await expect(page.getByTestId('avviso')).toHaveText('Conto del Tavolo 2 salvato.');
   });
+});
+
+test('categorie: solo quelle presenti nel listino; il filtro mostra i prodotti della categoria', async ({ app }) => {
+  const { page } = app;
+  const categorie = page.locator('[data-categoria]');
+  await expect(categorie).toHaveText(['Tutti', 'Birre', 'Bibite', 'Snack', 'Bar']); // nessun prodotto Extra di esempio
+  await expect(page.locator('[data-categoria="Tutti"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.click('[data-categoria="Snack"]');
+  await expect(page.locator('[data-prodotto]')).toHaveText([/Patatine/, /Salatini/]);
+  await expect(page.getByText('2 in Snack')).toBeVisible();
+  await page.click('[data-categoria="Tutti"]');
+  await expect(page.locator('[data-prodotto]')).toHaveCount(12);
+});
+
+test('una categoria che resta senza prodotti sparisce e il filtro torna a Tutti', async ({ app }) => {
+  const { page } = app;
+  await page.click('[data-categoria="Bar"]');
+  await expect(page.locator('[data-prodotto]')).toHaveText([/Caffè/]);
+  await page.click('[data-testid=nav-gestione]');
+  await digitaPin(page, PIN);
+  await page.click('[data-testid=voce-prodotti]');
+  await page.click('[data-prodotto-listino="Caffè"]');
+  await page.click('[data-testid=elimina-prodotto]');
+  await page.click('[data-testid=conferma-si]');
+  await page.click('[data-testid=nav-cassa]');
+  await expect(page.locator('[data-categoria="Bar"]')).toHaveCount(0);
+  await expect(page.locator('[data-categoria="Tutti"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-prodotto]')).toHaveCount(11);
 });
