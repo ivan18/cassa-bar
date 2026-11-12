@@ -13,9 +13,10 @@ Progetto: app di cassa offline (PWA) per il bar di un'associazione. Lingua: **it
 - Repo pubblico: niente nomi reali dei soci, niente backup JSON.
 - Nessuna richiesta di rete a runtime, nessuna libreria nuova senza motivo, backup vecchi sempre importabili.
 - Pubblicazione solo tramite branch + pull request su `main`.
-- Se un'operazione su GitHub è bloccata dal proxy (tag, release, impostazioni), farla tramite il browser (Claude in Chrome, sessione già loggata dell'utente).
+- In locale (VS Code) tag e release si fanno con `git`/`gh`. Solo nelle sessioni cloud, se un'operazione su GitHub è bloccata dal proxy (tag, release, impostazioni), farla tramite il browser (Claude in Chrome, sessione già loggata dell'utente).
+- Il file di configurazione con soci reali e PIN (`config-cassa.json`) sta fuori dal repo; `.gitignore` esclude comunque `config*.json`.
 - Con le modifiche di codice indicare sempre i comandi per lanciare i test.
 
 ## A fine sessione
 Aggiornare `docs/STATO.md` (situazione, task, una riga nel registro sessioni) e, se serve, `docs/CHANGELOG.md`, `docs/FUNZIONALITA.md`, `docs/PIANO-v4.md`.
-Poi riallineare le copie nel Progetto Claude: `claude/funzionalita.md`, `claude/CHANGELOG.md`, `claude/PIANO.md` (= PIANO-v4), `claude/LEGGIMI.md` (= MANUTENZIONE), `claude/STATO.md`.
+I documenti in `docs/` sono l'unica fonte di verità. Le vecchie copie nel Progetto Claude su claude.ai (`claude/*.md`) non si aggiornano più.
