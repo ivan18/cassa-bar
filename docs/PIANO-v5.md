@@ -4,7 +4,7 @@ Lavorare per fasi: per ogni fase un branch `feat/v5-…` aperto da `sviluppo/v5`
 
 Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
-**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fase 1 chiusa (scheletro, 10 test e2e verdi). Prossimo passo: Fase 2 (dominio, stato, persistenza).
+**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fasi 1 e 2 chiuse (scheletro; dominio e store con 52 test verdi). Prossimo passo: Fase 3 (Cassa e conti aperti), dopo aver deciso D8 e D9.
 
 ## Contesto
 
@@ -97,9 +97,19 @@ Resta com'è nella v4.2, salvo decisione diversa: "Salva conto" torna al Banco m
 - ☑ `e2e/avvio.spec.ts`, 10 test: l'app parte, caratteri locali caricati, icone SVG inline, nessuno sforamento a 320 / 360 / 375 / 768 / 1024 / 1280 px, PIN non in chiaro nel bundle. Superati anche con un PIN diverso da 1234.
 - Note per le fasi successive: React 19 invece della 18 della v4.2 (codice nuovo, versione stabile corrente); Tailwind 3 non ha le container query del prototipo: in Fase 3 si sceglie tra il plugin ufficiale `@tailwindcss/container-queries` e media query normali; `zustand` si aggiunge in Fase 2.
 
-**☐ Fase 2 — Dominio, stato, persistenza**
-- `dominio/*` e lo store Zustand (`stato/*`) completi per tutte le regole della v4.2, ripresi da `src/orig.html` come specifica (es. `paymentLabel` ~L481, `confirmPayment` ~L490, `handlePerformDailyClosure` ~L584, `handleLoadConfig` ~L717, `compactSale` ~L82).
-- UI minima di prova solo dove serve ai test.
+**☑ Fase 2 — Dominio, stato, persistenza** — chiusa il 2026-11-12
+- ☑ `src/dominio/` (TypeScript puro, senza React né localStorage; l'ora entra come parametro): `costanti`, `tipi`, `formato`, `comanda`, `incasso`, `conti`, `chiusura`, `soci`, `prodotti`, `pin` (+ `pinBuild`), `configurazione`, `backup`. Regole riprese da `src/orig.html` della v4.2.
+- ☑ **Importi in centesimi interi** ovunque (`200` = € 2,00): niente errori dei decimali (0,1 + 0,2). Conversione solo in `formato.euro` / `formato.leggiImporto`.
+- ☑ `src/stato/`: store Zustand 5.0.16 creato da `creaStore({ archivio, pinBuild })` (`store.ts`), archivio su localStorage che non si blocca se la memoria è piena (`archivio.ts`), istanza dell'app con il PIN della build (`cassa.ts`, hook `useCassa`). Un'unica chiave `cassa5_stato`, versione 1; lo stato della UI (`memoriaPiena`) non si salva.
+- ☑ Backup nel formato v5 (`tipo: "cassa-bar-backup"`, `versione: 5`, `dati`), con controllo della forma dei dati campo per campo; un backup v4 viene riconosciuto e per ora rifiutato con un messaggio (import nel punto aperto sulla migrazione).
+- ☑ Test: 42 nuovi in `e2e/dominio/`, girano con Playwright **senza browser** (scelta del 2026-11-12: nessuna libreria in più). Totale 52 verdi, anche con PIN diverso; una prova con due errori introdotti di proposito li ha fatti fallire come previsto.
+- Differenze di comportamento rispetto alla v4.2 (piccole, da confermare guardando le schermate):
+  - la comanda in corso si salva sul dispositivo: non si perde se il telefono si ricarica;
+  - riassegnare una voce a un socio che ha già lo stesso prodotto unisce le righe (come nel prototipo);
+  - eliminare un conto aperto svuota anche la comanda di quel tavolo, se è aperta (nella v4.2 restava a schermo);
+  - l'iscrizione manuale di un socio ignora i doppioni anche con maiuscole diverse (nella v4.2 lo faceva solo il file di configurazione);
+  - un prodotto deve costare più di zero; cassiere e causale della chiusura possono restare vuoti (nella v4.2 c'erano testi predefiniti);
+  - etichette con la sola iniziale maiuscola: "Intero tavolo", "Tavolo generico".
 
 **☐ Fase 3 — Cassa e conti aperti**
 - Tavoli (occupato), soci al tavolo con filtro A–Z, socio attivo, Tavolo Generico, modalità TUTTI, categorie, battuta extra con descrizione, comanda (quantità, riassegnazione, svuota), Salva conto, barra fissa su telefono.
