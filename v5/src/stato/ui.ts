@@ -1,0 +1,120 @@
+// Stato dell'interfaccia: sezione, socio attivo, fogli e finestre aperti, PIN della Gestione. Non si salva.
+import { useStore } from 'zustand';
+import { createStore } from 'zustand/vanilla';
+
+export type Sezione = 'cassa' | 'conti' | 'storico' | 'gestione';
+export type Foglio = null | 'comanda' | 'soci' | 'extra' | 'incasso';
+
+export interface Conferma {
+  titolo: string;
+  testo: string;
+  si: string;
+  /** assente = semplice avviso con un solo pulsante */
+  no?: string;
+  /** azione distruttiva: il pulsante è rosso e non evidenziato */
+  pericolo?: boolean;
+  azione?: () => void;
+}
+
+export interface RichiestaPin {
+  motivo: string;
+  azione: () => void;
+}
+
+/** D8: la Gestione si richiude da sola dopo 2 minuti senza tocchi. */
+export const BLOCCO_GESTIONE_MS = 2 * 60 * 1000;
+
+export interface StatoUi {
+  sezione: Sezione;
+  /** null = automatico (primo socio seduto); '' = Tavolo generico scelto; altrimenti il nome */
+  socioAttivo: string | null;
+  tutti: boolean;
+  categoria: string;
+  foglio: Foglio;
+  vistaConti: 'aperti' | 'crediti';
+  gestioneSbloccata: boolean;
+  ultimoTocco: number;
+  conferma: Conferma | null;
+  richiestaPin: RichiestaPin | null;
+  avviso: string | null;
+
+  vai(sezione: Sezione): void;
+  apriFoglio(f: Exclude<Foglio, null>): void;
+  chiudiFoglio(): void;
+  /** dopo il cambio di tavolo: socio automatico, TUTTI spento */
+  azzeraSocio(): void;
+  scegliSocio(socio: string): void;
+  cambiaTutti(): void;
+  scegliCategoria(c: string): void;
+  scegliVistaConti(v: 'aperti' | 'crediti'): void;
+  chiediConferma(c: Conferma): void;
+  chiudiConferma(): void;
+  chiediPin(r: RichiestaPin): void;
+  chiudiPin(): void;
+  sbloccaGestione(adesso: number): void;
+  bloccaGestione(): void;
+  tocco(adesso: number): void;
+  /** richiude la Gestione se è aperta da più di 2 minuti senza tocchi */
+  controllaBlocco(adesso: number): void;
+  avvisa(testo: string): void;
+}
+
+let timerAvviso: ReturnType<typeof setTimeout> | undefined;
+
+export function creaUi() {
+  return createStore<StatoUi>()((set, get) => ({
+    sezione: 'cassa',
+    socioAttivo: null,
+    tutti: false,
+    categoria: 'Tutti',
+    foglio: null,
+    vistaConti: 'aperti',
+    gestioneSbloccata: false,
+    ultimoTocco: 0,
+    conferma: null,
+    richiestaPin: null,
+    avviso: null,
+
+    vai: sezione => set(s => ({
+      sezione,
+      foglio: null,
+      gestioneSbloccata: sezione === 'gestione' ? s.gestioneSbloccata : false,
+    })),
+    apriFoglio: foglio => set({ foglio }),
+    chiudiFoglio: () => set({ foglio: null }),
+    azzeraSocio: () => set({ socioAttivo: null, tutti: false }),
+    scegliSocio: socio => set({ socioAttivo: socio, tutti: false }),
+    cambiaTutti: () => set(s => ({ tutti: !s.tutti })),
+    scegliCategoria: categoria => set({ categoria }),
+    scegliVistaConti: vistaConti => set({ vistaConti }),
+    chiediConferma: conferma => set({ conferma }),
+    chiudiConferma: () => set({ conferma: null }),
+    chiediPin: richiestaPin => set({ richiestaPin }),
+    chiudiPin: () => set({ richiestaPin: null }),
+    sbloccaGestione: adesso => set({ gestioneSbloccata: true, ultimoTocco: adesso }),
+    bloccaGestione: () => set({ gestioneSbloccata: false }),
+    tocco: adesso => set({ ultimoTocco: adesso }),
+    controllaBlocco: adesso => {
+      const s = get();
+      if (s.gestioneSbloccata && adesso - s.ultimoTocco >= BLOCCO_GESTIONE_MS) {
+        set({ gestioneSbloccata: false });
+        get().avvisa('Gestione bloccata dopo 2 minuti senza tocchi.');
+      }
+    },
+    avvisa: testo => {
+      clearTimeout(timerAvviso);
+      set({ avviso: testo });
+      timerAvviso = setTimeout(() => set({ avviso: null }), 3000);
+    },
+  }));
+}
+
+export const ui = creaUi();
+export const useUi = <T,>(selettore: (s: StatoUi) => T): T => useStore(ui, selettore);
+
+/** Socio a cui va un prodotto battuto, dato chi è seduto e cosa è stato scelto. */
+export function socioEffettivo(seduti: readonly string[], scelto: string | null): string {
+  if (scelto === '') return '';
+  if (scelto !== null && seduti.includes(scelto)) return scelto;
+  return seduti[0] ?? '';
+}
