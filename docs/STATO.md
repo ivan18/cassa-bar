@@ -40,7 +40,8 @@ Stato: ☐ da fare · ◐ in corso · ☑ fatto
 - ☑ Piano approvato (2026-11-12): cartella `v5/`, React + TypeScript + Vite, store Zustand, test e2e con `@playwright/test` (niente Python), UI riprogettata.
 - ☑ Fase 0: prototipo ([prototipo-v5.html](prototipo-v5.html)) con tutte le funzioni della v4.2; approvate D10–D14 (limiti noti, comanda a barra, chiusura in 3 passi e dialoghi dell'app, euro con la virgola, archivio chiusure).
 - ☐ Discutere D8 (navigazione a 4 sezioni, un PIN per tutta la Gestione) e D9 (extra con tastierino): da decidere prima della Fase 3.
-- ☐ Fasi 1–7 (dettaglio nel piano). Prossima: Fase 1, scheletro.
+- ☑ Fase 1: scheletro di `v5/` (Vite 8, TypeScript 7, React 19, Tailwind con i token del prototipo, caratteri e icone locali) e 10 test e2e Playwright verdi.
+- ☐ Fasi 2–7 (dettaglio nel piano). Prossima: Fase 2, dominio, stato e persistenza.
 - Rimandati: migrazione v4.2 → v5 e import dei backup v4; file unico offline / PWA / pubblicazione (da discutere a parità raggiunta).
 
 ### Manutenzione (non urgenti)
@@ -71,6 +72,8 @@ Nessuna.
 ## Registro sessioni
 
 Una riga per sessione, la più recente in alto: cosa è stato fatto e cosa è rimasto a metà.
+
+- **2026-11-12 (4)** — Flusso di lavoro della v5 sul branch `sviluppo/v5` (PR #11 su `main`). Fase 1 sul branch `feat/v5-scheletro`: scheletro di `v5/` e prima suite Playwright in TypeScript (10 test verdi, anche con PIN diverso; prova negativa sul blocco della rete). Prossimo: Fase 2.
 
 - **2026-11-12 (3)** — Scritto e approvato il piano della v5 ([PIANO-v5.md](PIANO-v5.md)): riscrittura da zero in `v5/` con React + TypeScript + Vite, Zustand (preferito a `useReducer` e Jotai), Playwright in TypeScript, UI riprogettata. Migrazione e file unico rimandati. Fase 0 chiusa: prototipo cliccabile verificato con Chrome a 320 / 375 / 1024 px (quattro giri di revisione), D10–D14 approvate, D8–D9 da discutere. Nota: in WSL Playwright per Python non è installato, quindi `tests/test_cassa.py` qui non parte. Prossimo: Fase 1.
 

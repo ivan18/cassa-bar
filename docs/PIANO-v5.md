@@ -4,7 +4,7 @@ Lavorare per fasi: per ogni fase un branch `feat/v5-…` aperto da `sviluppo/v5`
 
 Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
-**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Prossimo passo: Fase 1 (scheletro).
+**Avanzamento (2026-11-12):** piano approvato; Fase 0 chiusa (prototipo, D10–D14 approvate, D8–D9 da discutere). Fase 1 chiusa (scheletro, 10 test e2e verdi). Prossimo passo: Fase 2 (dominio, stato, persistenza).
 
 ## Contesto
 
@@ -91,10 +91,11 @@ Regola per i selettori dei test: ogni elemento interattivo usato dai test ha un 
 
 Resta com'è nella v4.2, salvo decisione diversa: "Salva conto" torna al Banco ma lascia i soci seduti (il tavolo resta occupato).
 
-**☐ Fase 1 — Scheletro**
-- `v5/` con Vite, TS strict, Tailwind (palette e font del prototipo come token), Icona (SVG da `lucide`, import per nome), PIN da `CASSA_PIN`, font Inter e Barlow Condensed locali (`@fontsource`, versioni fissate: nessuna richiesta di rete).
-- `playwright.config.ts` ed `e2e/supporto.ts`: le stesse garanzie di `tests/test_cassa.py` (blocco della rete esterna, errori JS, stampa finta, localStorage vuoto), riscritte come fixture TypeScript.
-- Primo test: l'app parte, nessuna richiesta esterna, nessun errore.
+**☑ Fase 1 — Scheletro** — chiusa il 2026-11-12
+- ☑ `v5/` con Vite 8.3.5, TypeScript 7.0.2 strict (`tsconfig.json` per `src/`, `tsconfig.node.json` per configurazioni e test), React 19.3.1, Tailwind 3.4.17 con i token del prototipo (`tailwind.config.ts`), Icona (SVG da `lucide` 1.62.0, solo le icone importate finiscono nel bundle), PIN da `CASSA_PIN` come salt + hash (`vite.config.ts`, costanti `__PIN_SALT__`/`__PIN_HASH__`), Inter (solo latino) e Barlow Condensed locali da `@fontsource`.
+- ☑ `playwright.config.ts` ed `e2e/supporto.ts` (`@playwright/test` 1.64.1, Chrome di sistema): rete esterna bloccata e registrata, errori JS e di console, stampa finta, contesto nuovo per test. Verificato con una prova negativa che una richiesta esterna fa fallire il test.
+- ☑ `e2e/avvio.spec.ts`, 10 test: l'app parte, caratteri locali caricati, icone SVG inline, nessuno sforamento a 320 / 360 / 375 / 768 / 1024 / 1280 px, PIN non in chiaro nel bundle. Superati anche con un PIN diverso da 1234.
+- Note per le fasi successive: React 19 invece della 18 della v4.2 (codice nuovo, versione stabile corrente); Tailwind 3 non ha le container query del prototipo: in Fase 3 si sceglie tra il plugin ufficiale `@tailwindcss/container-queries` e media query normali; `zustand` si aggiunge in Fase 2.
 
 **☐ Fase 2 — Dominio, stato, persistenza**
 - `dominio/*` e lo store Zustand (`stato/*`) completi per tutte le regole della v4.2, ripresi da `src/orig.html` come specifica (es. `paymentLabel` ~L481, `confirmPayment` ~L490, `handlePerformDailyClosure` ~L584, `handleLoadConfig` ~L717, `compactSale` ~L82).
@@ -134,6 +135,6 @@ Resta com'è nella v4.2, salvo decisione diversa: "Salva conto" torna al Banco m
 # v4.2 invariata
 CASSA_PIN=1234 npm run build && python3 tests/test_cassa.py dist/cassa_smart_bar_pub.html 1234
 # v5 (build + preview avviati da Playwright)
-cd v5 && npm ci && npx tsc --noEmit && CASSA_PIN=1234 npx playwright test
+cd v5 && npm ci && npm run verifica && CASSA_PIN=1234 npm test
 ```
 Prova manuale su `npm run dev` a 375 e 1024 px per i flussi della fase.
