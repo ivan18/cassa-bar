@@ -2,13 +2,14 @@
 
 > Da leggere all'inizio di ogni sessione e da aggiornare alla fine (sezioni "Situazione", "Task" e "Registro sessioni").
 
-Ultimo aggiornamento: **2026-11-12**
+Ultimo aggiornamento: **2026-11-15**
 
 ## Situazione
 
 | | |
 |---|---|
-| Pubblicato su Pages | **v4.2** — Tavolo Generico, descrizione extra, PIN su Elimina, chiusura che archivia le vendite, report stampabile ([PR #7](https://github.com/ivan18/cassa-bar/pull/7), tag `v4.2`) |
+| Pubblicato su Pages | **Versione del collega** (2026-11-15), in attesa del merge della PR `pubblica/collega-2026-11-15`: il suo file in `src/orig.html`, passato nel build solo per aprirsi senza internet. Nessun'altra modifica. |
+| Prima | **v4.2** — Tavolo Generico, descrizione extra, PIN su Elimina, chiusura che archivia le vendite, report stampabile ([PR #7](https://github.com/ivan18/cassa-bar/pull/7), tag `v4.2`) |
 | Versione precedente | **v4.1** (tag `v4.1`) |
 | PIN della build | `1234` (il PIN vero si imposterà con il JSON di configurazione) |
 
@@ -17,6 +18,7 @@ Ultimo aggiornamento: **2026-11-12**
 Stato: ☐ da fare · ◐ in corso · ☑ fatto
 
 ### Subito
+- ◐ Pubblicazione della versione del collega, decisa dall'utente il 2026-11-15 ("deve aprirsi senza internet, questa è l'unica modifica da fare"). Rispetto alla v4.2 mancano: PIN con hash e configurazione JSON (il PIN `1234` resta sempre valido), PIN su Elimina conto/credito, chiusura che archivia le vendite (la chiusura successiva ricalcola anche gli incassi già chiusi). I 24 soci reali sono scritti nel codice e quindi visibili sul sito pubblico. `tests/test_cassa.py` fallisce perché verifica la v4.2; è passato un test a rete bloccata (vendita, incasso, chiusura con PIN, nessuna richiesta di rete). Per tornare indietro: revert della PR.
 - ☑ Merge della PR #1 (v3) su `main`.
 - ☑ Pubblicazione della v4.1 su Pages: le esecuzioni n. 4 e n. 5 di `pages-build-deployment` sono rimaste bloccate in "Queued" (errore interno di GitHub; githubstatus senza incidenti; quote e fatturazione a posto; "Cancel run" non funziona). Risolto con un nuovo merge (PR #5): la n. 6 è andata a buon fine in 26 s e il sito è alla v4.1 (verificato il 2026-11-11 alle 22:23). Le n. 4 e 5 restano appese in coda: si possono ignorare o annullare quando GitHub lo permette.
 - ☑ Merge della PR #7 (v4.2) e release/tag `v4.2` (creata dal browser); Pages pubblicato (esecuzione n. 8) e verificato online il 2026-11-12.
@@ -72,6 +74,7 @@ Nessuna.
 
 Una riga per sessione, la più recente in alto: cosa è stato fatto e cosa è rimasto a metà.
 
+- **2026-11-15** — Ricevuta la versione di un collega (derivata dalla "v6", non dalla v4.2). Caricata così com'è sul branch `input/collega-2026-11-15` (`docs/input/`). Su richiesta dell'utente preparata la pubblicazione al posto della v4.2, con la sola compilazione offline: branch `pubblica/collega-2026-11-15`, PR verso `main`. Analisi delle differenze da fare (note nel Progetto Claude, `versioni/input-2026-11-15-collega/NOTE.md`).
 - **2026-11-12 (3)** — Scritto e approvato il piano della v5 ([PIANO-v5.md](PIANO-v5.md)): riscrittura da zero in `v5/` con React + TypeScript + Vite, Zustand (preferito a `useReducer` e Jotai), Playwright in TypeScript, UI riprogettata. Migrazione e file unico rimandati. Fase 0 chiusa: prototipo cliccabile verificato con Chrome a 320 / 375 / 1024 px (quattro giri di revisione), D10–D14 approvate, D8–D9 da discutere. Nota: in WSL Playwright per Python non è installato, quindi `tests/test_cassa.py` qui non parte. Prossimo: Fase 1.
 
 - **2026-11-12 (2)** — Merge della PR #7, release `v4.2` creata dal browser, sito verificato alla v4.2. Resta l'aggiornamento del dispositivo del bar.
